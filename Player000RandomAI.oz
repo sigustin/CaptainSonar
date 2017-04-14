@@ -28,6 +28,7 @@ define
 	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLoading:0 nbSonars:0 sonarsLoading:0)
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	% This port object has an @ID containing the ID number, the color and the name of the object
 	% This port object uses the states
 	% @stateRandomAI(life:Life pos:Position dir:Direction canDive:CanDive visited:SquaresVisited weaponsState:WeaponsState)
 	%     @CanDive is a boolean saying if the player has been granted the permission to dive
@@ -43,15 +44,16 @@ in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	%============== Make the port object ========================
-	% @StartPlayer : Initializes the player (ID, color, position, etc.)
+	% @StartPlayer : Initializes the player (ID, position, weapons, etc.)
 	%                and create the port object
-	fun {StartPlayer Color ID}
+	fun {StartPlayer Color Num}
 		Stream
 		Port
+		ID = id(id:Num color:Color name:'randomAI'#{OS.rand})
 	in		
 		{NewPort Stream Port}
 		thread
-			{TreatStream Stream ID Color stateRandomAI(life:Input.maxDamage pos:{InitPosition} dir:surface canDive:false visited:nil weaponsState:DefaultWeaponsState)}
+			{TreatStream Stream ID stateRandomAI(life:Input.maxDamage pos:{InitPosition} dir:surface canDive:false visited:nil weaponsState:DefaultWeaponsState)}
 		end
 		Port
 	end
@@ -59,13 +61,13 @@ in
 	% @TreatStream : Loop that checks if some new messages are sent to the port 
 	%                and treats them
 	%                The attributes of this procedure keep track of the state of this port object
-	%                @ID and @Color should never be changed
+	%                @ID (contains an ID number, a color and a name) should never be changed
 	%                @State contains every attribute of the current port object that could change
 	%                       (thus here : position, direction, life of the player, etc.)
-	proc {TreatStream Stream ID Color State}
+	proc {TreatStream Stream ID State}
 		case Stream
 		of Msg|S2 then
-			{TreatStream S2 ID Color {Behavior Msg ID Color State}}
+			{TreatStream S2 ID {Behavior Msg ID State}}
 		else skip %something went wrong
 		end
 	end
@@ -73,7 +75,7 @@ in
 	%=============== Manage the messages ========================
 	% @Behavior : Behavior for every type of message sent on the port
 	%             Returns the new state
-	fun {Behavior Msg PlayerID PlayerColor State}
+	fun {Behavior Msg PlayerID State}
 		ReturnedState
 	in
 		case State
