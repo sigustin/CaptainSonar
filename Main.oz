@@ -11,16 +11,17 @@ import
 	PlayerManager
 define
 	%============= Variables ====================
-		PortWindow
-        PlayersPorts %List of all the players' ports => size == Input.nbPlayer
-        PlayersPositions
+	PortWindow
+	PlayersPorts %List of all the players' ports => size == Input.nbPlayer
+	PlayersID %List of all the players' ID
+	PlayersPositions %List of all the players' positions
 	
 	%========== Functions and procedures =====================
-		CreatePlayers
-        GenerateColor
-        SetUp
-        TurnByTurn
-        Simultaneous
+	CreatePlayers
+	GenerateColor
+	SetUpAndShow
+	TurnByTurn
+	Simultaneous
 in
 
 	%======== Functions and procedures definitions ============
@@ -55,12 +56,17 @@ in
 		   ({OS.rand} mod 256) )
 	end
 
-	% @SetUp : ask each Player is initial position (allow multiple boats at the same place? YES cf. pdf)
-	fun {SetUp PlayersPorts}
+	% @SetUpAndShow : ask each Player its initial position (allow multiple boats at the same place? YES cf. pdf)
+	%                 Then sends a message to the GUI to display their initial position
+	fun {SetUpAndShow PlayersPorts}
 	   case PlayersPorts
 	   of P|H then ID Position in
+	   	% Set up the current player
 	      {Send P initPosition(ID Position)}
-	      Position|{SetUp H}
+	      % Show the current player
+	      {Send PortWindow initPlayer(ID Position)}
+	      %return
+	      Position|{SetUpAndShow H}
 	   [] nil then
 	      nil
 	   end
@@ -91,7 +97,7 @@ in
 	{Browser.browse 'Input.nbPlayer'#Input.nbPlayer}
 	{Browser.browse 'PlayersPorts'#PlayersPorts}
 
-	PlayersPositions = {SetUp PlayersPorts}
+	PlayersPositions = {SetUpAndShow PlayersPorts}
 	%for Pos in PlayersPositions do
 	%	{Browser.browse Pos}
 	%end
