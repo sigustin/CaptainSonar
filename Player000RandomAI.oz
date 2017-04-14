@@ -53,9 +53,68 @@ in
 			case Msg
 			of initPosition(ID Position) then
 				ID = PlayerID
-				Position = PlayerPosition
+				%Position = PlayerPosition
+				Position = {InitPosition}
+			 [] move(ID Position Direction) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] dive then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] chargeItem(ID KindItem) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] fireItem(ID KindFire) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] fireMine(ID KindItem) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] isSurface(ID Answer) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayMove(ID Direction) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] saySurface(ID) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayCharge(ID KindItem) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayMinePlaced(ID) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayMissileExplode(ID Position Message) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayMineExplode(ID Position Message) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayPassingDrone(Drone ID Answer) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayAnswerDrone(Drone ID Answer) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayPassingSonar(ID Answer) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayAnswerSonar(ID Answer) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayDeath(ID) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayDeath(ID) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
+			 [] sayDamageTaken(ID Damage LifeLeft) then
+				{Browser.browse 'coucou pas encore implémenté'}
+				%...
 			end
 		end
+		State
 	end
 	
 	%=============== Generate the initial position ================

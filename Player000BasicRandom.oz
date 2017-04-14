@@ -13,7 +13,7 @@ in
    in
       {NewPort StreamPort}
       thread
-	 {TreatStream Stream TODO}
+	 	{TreatStream Stream TODO}
       end
       Port
    end
