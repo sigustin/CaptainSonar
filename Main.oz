@@ -55,7 +55,7 @@ in
 		   ({OS.rand} mod 256) )
 	end
 
-	% @SetUp : ask each Player is initial position (allow multiple boats at the same place?)
+	% @SetUp : ask each Player is initial position (allow multiple boats at the same place? YES cf. pdf)
 	fun {SetUp PlayersPorts}
 	   case PlayersPorts
 	   of P|H then ID Position in
@@ -69,17 +69,17 @@ in
 	% @TurnByTurn : run the game in turn by turn mode
 	proc {TurnByTurn}
 	   {Browser.browse 'turn by turn'}
-		
 	end
 
 	% @Simultaneous : run the game in simultaneous mode
 	proc {Simultaneous}
-	   {Browser.browse 'turn by turn launched'}
+	   {Browser.browse 'simultaneous'}
+	   %TODO
 	end
 
-
-
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	%=================== Execution ===========================
+	
 	{Browser.browse 'open the browser'}
 	%========= Create the GUI port and run its interface =============
 	PortWindow = {GUI.portWindow}
@@ -99,11 +99,9 @@ in
 	if Input.isTurnByTurn then
 		%--------- Turn by turn game ----------------
 		{TurnByTurn}
-		%TODO
 	else
 		%--------- Simultaneous game ----------------
-		{Browser.browse 'simultaneous'}
-		%TODO
+		{Simultaneous}
 	end
 	
 end
