@@ -78,7 +78,7 @@ in
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
 			 %[] chargeItem(ID KindItem) then
-				{Browser.browse 'coucou pas encore implémenté'}
+			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
 			 %[] fireItem(ID KindFire) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
