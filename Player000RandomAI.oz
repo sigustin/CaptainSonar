@@ -20,15 +20,22 @@ define
 	ChooseRandomDirection
 	
 	PositionIsValid
+	
+	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLaoding:0 nbSonars:0 sonarsLoading:0)
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	% This port object uses the state
-	% @stateRandomAI(life:Life pos:Position dir:Direction visited:SquaresVisited canDive:CanDive)
-	% @SquaresVisited is a list of all the positions visited since the last surface phase
-	%                 Those cannot be visited again on the same diving phase
-	% @CanDive is a boolean saying if the player has been granted the permission to dive
-	%          we consider that this boolean == false when the player is underwater
+	% This port object uses the states
+	% @stateRandomAI(life:Life pos:Position dir:Direction canDive:CanDive visited:SquaresVisited weaponsState:WeaponsState)
+	%     @CanDive is a boolean saying if the player has been granted the permission to dive
+	%              we consider that this boolean == false when the player is underwater
+	%     @SquaresVisited is a list of all the positions visited since the last surface phase
+	%                     Those cannot be visited again on the same diving phase
 	%                    => Main should NOT allow a player to dive while it's underwater
+	%     @WeaponsState is a record of type @stateWeapons (defined hereafter)
+	% @stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+	%    @nbX is the number of X available to the player
+	%    @XLoading is the number of loading charges currently loaded by the player
+	%              Input.X being the number of loading charges needed to charge one item of this type
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	%============== Make the port object ========================
@@ -40,7 +47,7 @@ in
 	in		
 		{NewPort Stream Port}
 		thread
-			{TreatStream Stream ID Color stateRandomAI(life:Input.maxDamage pos:{InitPosition} dir:surface canDive:false visited:nil)}
+			{TreatStream Stream ID Color stateRandomAI(life:Input.maxDamage pos:{InitPosition} dir:surface canDive:false visited:nil weaponsState:DefaultWeaponsState)}
 		end
 		Port
 	end
@@ -66,14 +73,14 @@ in
 		ReturnedState
 	in
 		case State
-		of stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares) then
+		of stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares weaponsState:WeaponsState) then
 			case Msg
 			%---------- Initialize position -------------
 			of initPosition(?ID ?Position) then
 				ID = PlayerID
 				Position = PlayerPosition
 				%return
-				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares)
+				ReturnedState = State
 			%---------- Move player -------------------
 			[] move(?ID ?Position ?Direction) then
 				case {Move posState(pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares)}
@@ -82,16 +89,16 @@ in
 					Position = NewPosition
 					Direction = NewDirection
 					%return
-					ReturnedState = stateRandomAI(life:PlayerLife pos:NewPosition dir:NewDirection cnaDive:NewCanDive visited:NewVisitedSquares)
+					ReturnedState = stateRandomAI(life:PlayerLife pos:NewPosition dir:NewDirection cnaDive:NewCanDive visited:NewVisitedSquares weaponsState:WeaponsState)
 				else %something went wrong
 					ID = null
 					%return the same state as before
-					ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares)
+					ReturnedState = State
 				end
 			%---------- Provide the permission to dive -------------
 			% This should be called only if PlayerDirection == surface
 			[] dive then
-				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:true visited:VisitedSquares)
+				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:true visited:VisitedSquares weaponsState:WeaponsState)
 			 %[] chargeItem(ID KindItem) then
 				%{Browser.browse 'coucou pas encore implémenté'}
 				%...
