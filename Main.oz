@@ -1,5 +1,5 @@
 %% Main.oz %%
-%% Manages the ports
+%% Manages the ports => create and run the game
 
 functor
 import
@@ -25,21 +25,27 @@ in
 	{Send PortWindow buildWindow}
 	
 	%======= Create the port for every player and ask them to set up ===================
-	{Browser.browse 'debug'}
-	{Browser.browse 'PlayersPorts'#PlayersPorts}
 	thread {CreatePlayers} end %BUG blocks if it is not in a thread
-	{Browser.browse 'debug'}
 	{Browser.browse 'Input.nbPlayer'#Input.nbPlayer}
 	{Browser.browse 'PlayersPorts'#PlayersPorts}
 	
 	%============== Run the game ==================
+	if Input.isTurnByTurn then
+		%--------- Turn by turn game ----------------
+		{Browser.browse 'turn by turn'}
+		%TODO
+	else
+		%--------- Simultaneous game ----------------
+		{Browser.browse 'simultaneous'}
+		%TODO
+	end
 	
 	%======== Functions and procedures definitions ============
 	% @CreatePlayers : runs a loop that creates @Input.nbPlayer players (with a color and an ID)
 	%                  and puts them in @PortsPlayer (with IDs in descending order)
 	proc {CreatePlayers}
 		fun {Loop Count PlayersList}
-			{Browser.browse Count}
+			%{Browser.browse Count}
 			if Count >= Input.nbPlayer then 
 				PlayersList
 			else
@@ -47,7 +53,7 @@ in
 					CurrentColor = {GenerateColor}
 					CurrentPlayer
 				in
-					CurrentPlayer = {PlayerManager.playerGenerator player000randomai CurrentColor Count}
+					CurrentPlayer = {PlayerManager.playerGenerator player000randomai CurrentColor Count}%TODO use @Input.players
 					{Loop Count+1 CurrentPlayer|PlayersList}
 				end
 			end
