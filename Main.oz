@@ -13,12 +13,11 @@ define
 	%============= Variables ====================
 	PortWindow
 	PlayersPorts %List of all the players' ports => size == Input.nbPlayer
-	PlayersID %List of all the players' ID
 	PlayersPositions %List of all the players' positions
 	
 	%========== Functions and procedures =====================
 	CreatePlayers
-	GenerateColor
+	GenerateColor %unused
 	SetUpAndShow
 	TurnByTurn
 	Simultaneous
@@ -34,10 +33,9 @@ in
 				PlayersList
 			else
 				local
-					CurrentColor = {GenerateColor}
 					CurrentPlayer
 				in
-					CurrentPlayer = {PlayerManager.playerGenerator player000randomai CurrentColor Count}%TODO use @Input.players and @Input.colors
+					CurrentPlayer = {PlayerManager.playerGenerator {Nth Input.players Count} {Nth Input.colors Count} Count}
 					{Loop Count+1 CurrentPlayer|PlayersList}
 				end
 			end
@@ -50,6 +48,7 @@ in
 	%                  TODO it should be changed to generate colors that are always
 	%                       different from one another and not too close to one another
 	%                       (2 players should easily be differentiable)
+	% UNUSED
 	fun {GenerateColor}
 		c( ({OS.rand} mod 256) 
 		   ({OS.rand} mod 256) 
