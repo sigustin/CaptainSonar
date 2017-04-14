@@ -16,9 +16,17 @@ define
 	
 	InitPosition
 	Move
+	SquareNotVisited
 	
 	PositionIsValid
 in
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	% This port object uses the state
+	% @stateRandomAI(life:Life pos:Position dir:Direction visited:SquaresVisited)
+	% @SquaresVisited is a list of all the positions visited since the last surface phase
+	%                 Those cannot be visited again on the same diving phase
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 	%============== Make the port object ========================
 	% @StartPlayer : Initializes the player (ID, color, position, etc.)
 	%                and create the port object
@@ -28,7 +36,7 @@ in
 	in		
 		{NewPort Stream Port}
 		thread
-			{TreatStream Stream ID Color stateRandomAI(life:Input.maxDamage pos:{InitPosition} dir:surface)}
+			{TreatStream Stream ID Color stateRandomAI(life:Input.maxDamage pos:{InitPosition} dir:surface visited:nil)}
 		end
 		Port
 	end
@@ -54,31 +62,33 @@ in
 		ReturnedState
 	in
 		case State
-		of stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection) then
+		of stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares) then
 			case Msg
+			%---------- Initialize position -------------
 			of initPosition(?ID ?Position) then
 				ID = PlayerID
 				Position = PlayerPosition
 				%return
-				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection)
+				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares)
+			%---------- Move player -------------------
 			[] move(?ID ?Position ?Direction) then
-				case {Move posState(pos:PlayerPosition dir:PlayerDirection visited:nil)}
-				of posState(pos:NewPosition dir:NewDirection visited:VisitedSquares) then
+				case {Move posState(pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares)}
+				of posState(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) then
 					ID = PlayerID
 					Position = NewPosition
 					Direction = NewDirection
 					%return
-					ReturnedState = stateRandomAI(life:PlayerLife pos:NewPosition dir:NewDirection)
-				else
+					ReturnedState = stateRandomAI(life:PlayerLife pos:NewPosition dir:NewDirection visited:NewVisitedSquares)
+				else %something went wrong
 					ID = null
-					%return
-					ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection)
+					%return the same state as before
+					ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares)
 				end
 			 %[] dive then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
 			 %[] chargeItem(ID KindItem) then
-				{Browser.browse 'coucou pas encore implémenté'}
+				%{Browser.browse 'coucou pas encore implémenté'}
 				%...
 			 %[] fireItem(ID KindFire) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
@@ -146,23 +156,37 @@ in
 	end
 	
 	%======= Procedures to move randomly ========================
-	% @Move : move randomly of one square in any direction except if the current player is at the surface
-	% TODO keep track of all the squares visited since last surface phase (we can't go twice on the same square on the same diving phase)
+	% @Move : move randomly one square in any direction
+	%         except if the current player is at the surface
+	%         We cannot move twice on the same square in the same diving phase
+	%         (we keep track of the visited squares with @SquareVisited
 	fun {Move PositionState}
 		case PositionState
 		of posState(pos:Position dir:Direction visited:SquaresVisited) then
-			%if Direction == surface then
+			if Direction == surface then
 				%return
-			%	posState(pos:Position dir:Direction visited:SquaresVisited)%BUG expression at statement position
-			%end
-			NewPosition = pt(x:Position.x+({OS.rand} mod 2) y:Position.y+({OS.rand} mod 2))
-		in
-			if {PositionIsValid NewPosition} then
-				%return
-				posState(pos:NewPosition dir:Direction visited:SquaresVisited)
-			else {Move PositionState}
+				posState(pos:Position dir:Direction visited:nil)
+			else
+				NewPosition = pt(x:Position.x+({OS.rand} mod 2) y:Position.y+({OS.rand} mod 2))
+			in
+				if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition SquaresVisited} then
+					%return
+					posState(pos:NewPosition dir:Direction visited:NewPosition|SquaresVisited)
+				else {Move PositionState}
+				end
 			end
 		else null
+		end
+	end
+	
+	% @SquareNotVisited : returns true if the squares hasn't been visited in this diving phase
+	fun {SquareNotVisited Position SquaresVisited}
+		case SquaresVisited
+		of nil then true
+		[] Square|Remainder then
+			if Position == Square then false
+			else {SquareNotVisited Position Remainder}
+			end
 		end
 	end
 	
