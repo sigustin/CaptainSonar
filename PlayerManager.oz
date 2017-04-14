@@ -11,7 +11,7 @@ export
 define
    PlayerGenerator
 in
-   fun {PlayerGenerator Kind Color ID}
+   fun {PlayerGenerator Kind Color ID} %@Kind must contain something only with minuscules
       case Kind
       of player000basicrandom then
 	 		{Player000BasicRandom.portPlayer Color ID}

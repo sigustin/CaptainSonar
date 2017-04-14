@@ -1,5 +1,5 @@
 %% Main.oz %%
-%% Manages the ports
+%% Manages the ports => create and run the game
 
 functor
 import
@@ -22,20 +22,21 @@ define
         TurnByTurn
         Simultaneous
 in
-    %======== Functions and procedures definitions ============
+
+	%======== Functions and procedures definitions ============
 	% @CreatePlayers : runs a loop that creates @Input.nbPlayer players (with a color and an ID)
 	%                  and puts them in @PortsPlayer (with IDs in descending order)
 	proc {CreatePlayers}
 		fun {Loop Count PlayersList}
 			{Browser.browse Count}
-			if Count > Input.nbPlayer then 
+			if Count > Input.nbPlayer then
 				PlayersList
 			else
 				local
 					CurrentColor = {GenerateColor}
 					CurrentPlayer
 				in
-					CurrentPlayer = {PlayerManager.playerGenerator player000randomai CurrentColor Count}
+					CurrentPlayer = {PlayerManager.playerGenerator player000randomai CurrentColor Count}%TODO use @Input.players
 					{Loop Count+1 CurrentPlayer|PlayersList}
 				end
 			end
@@ -77,30 +78,31 @@ in
 
 
 
-	%=========== Execution =======================
+	%=================== Execution ===========================
 	{Browser.browse 'open the browser'}
 	%========= Create the GUI port and run its interface =============
 	PortWindow = {GUI.portWindow}
 	{Send PortWindow buildWindow}
 	
 	%======= Create the port for every player and ask them to set up ===================
-	{Browser.browse 'debug'}
-	{Browser.browse 'PlayersPorts'#PlayersPorts}
 	{CreatePlayers}
-	{Browser.browse 'debug'}
 	{Browser.browse 'Input.nbPlayer'#Input.nbPlayer}
 	{Browser.browse 'PlayersPorts'#PlayersPorts}
 
 	PlayersPositions = {SetUp PlayersPorts}
-	for Pos in PlayersPositions do
-		{Browser.browse Pos}
-	end
+	%for Pos in PlayersPositions do
+	%	{Browser.browse Pos}
+	%end
 	
 	%============== Run the game ==================
 	if Input.isTurnByTurn then
-	   {TurnByTurn}
+		%--------- Turn by turn game ----------------
+		{Browser.browse 'turn by turn'}
+		%TODO
 	else
-	   {Simultaneous}
+		%--------- Simultaneous game ----------------
+		{Browser.browse 'simultaneous'}
+		%TODO
 	end
 	
 end

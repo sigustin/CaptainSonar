@@ -1,3 +1,6 @@
+%% GUI.oz %%
+%% Functions to draw on the window
+
 functor
 import
 	QTk at 'x-oz://system/wp/QTk.ozf'

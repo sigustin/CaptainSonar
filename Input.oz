@@ -1,3 +1,6 @@
+%% Input.oz %%
+%% All the variables to set up the game
+
 functor
 export
    isTurnByTurn:IsTurnByTurn
@@ -94,7 +97,5 @@ in
    MinDistanceMissile = 1
    MaxDistanceMissile = 4
 
-
-   
 end
 
