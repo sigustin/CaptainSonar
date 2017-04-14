@@ -55,7 +55,7 @@ in
 		   ({OS.rand} mod 256) )
 	end
 
-	% @SetUp : ask each Player is initial position (allow multiple boat at the same place?)
+	% @SetUp : ask each Player is initial position (allow multiple boats at the same place?)
 	fun {SetUp PlayersPorts}
 	   case PlayersPorts
 	   of P|H then ID Position in
@@ -66,9 +66,10 @@ in
 	   end
 	end
 	
-	% @TurnByTurn : run the game inr turn by turn mode
+	% @TurnByTurn : run the game in turn by turn mode
 	proc {TurnByTurn}
-	   {Browser.browse 'turn by turn launched'}
+	   {Browser.browse 'turn by turn'}
+	
 	end
 
 	% @Simultaneous : run the game in simultaneous mode
@@ -97,7 +98,7 @@ in
 	%============== Run the game ==================
 	if Input.isTurnByTurn then
 		%--------- Turn by turn game ----------------
-		{Browser.browse 'turn by turn'}
+		{TurnByTurn}
 		%TODO
 	else
 		%--------- Simultaneous game ----------------
