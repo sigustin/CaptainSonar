@@ -19,9 +19,13 @@ define
 	SquareNotVisited
 	ChooseRandomDirection
 	
+	LoadRandomWeapon
+	NewWeaponAvailable
+	SimplifyWeaponsState
+	
 	PositionIsValid
 	
-	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLaoding:0 nbSonars:0 sonarsLoading:0)
+	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLoading:0 nbSonars:0 sonarsLoading:0)
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% This port object uses the states
@@ -99,9 +103,20 @@ in
 			% This should be called only if PlayerDirection == surface
 			[] dive then
 				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:true visited:VisitedSquares weaponsState:WeaponsState)
-			 %[] chargeItem(ID KindItem) then
-				%{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			%------- Increase the loading charge of an item ------------
+			[] chargeItem(?ID ?KindItem) then
+				NewWeaponsState
+				SimplifiedWeaponsState
+			in
+				ID = PlayerID
+				% Load one of the weapons's loading charge
+				NewWeaponsState = {LoadRandomWeapon WeaponsState}
+				% Check if a new weapon can be created
+				KindItem = {NewWeaponAvailable NewWeaponsState}
+				% Create the knew weapons state
+				SimplifiedWeaponsState = {SimplifyWeaponsState NewWeaponsState}
+				%return
+				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive cisited:VisitedSquares weaponsState:NewWeaponsState)
 			 %[] fireItem(ID KindFire) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
@@ -221,10 +236,62 @@ in
 	% @ChooseRandomDirection : returns one of the 4 directions randomly chosen (north, south, west or east)
 	fun {ChooseRandomDirection}
 		case {OS.rand} mod 4
-		of 1 then north
-		[] 2 then south
-		[] 3 then west
-		[] 4 then east
+		of 0 then north
+		[] 1 then south
+		[] 2 then west
+		[] 3 then east
+		end
+	end
+	
+	%======== Procedures for loading weapons =================================
+	% @LoadRandomWeapon : Randomly chooses a weapon to load and increment its loading charge
+	%                     Returns the updated weapons's state
+	fun {LoadRandomWeapon WeaponsState}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			case {OS.rand} mod 4
+			of 0 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading+1 nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] 1 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading+1 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] 2 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading+1 nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] 3 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading+1)
+			end
+		end
+	end
+	
+	% @NewWeaponAvailable : Check if @WeaponsState has one of its loading
+	%                       that allows one weapon to be created
+	%                       Returns the type of weapon created or @null if no weapon can be created
+	%                       Called everytime a loading charge is increased
+	fun {NewWeaponAvailable WeaponsState}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			if MinesLoading == Input.mine then mine
+			elseif MissilesLoading == Input.missile then missile
+			elseif DronesLoading == Input.drone then drone
+			elseif SonarsLoading == Input.sonar then sonar
+			else null
+			end
+		end
+	end
+	
+	% @SimplifyWeaponsState : If a weapon can be created, creates the weapon
+	%                         and decreases the weapon's loading charge
+	%                         Returns the new weapons's state
+	%                         Called everytime a loading charge is increased
+	%                              => only one weapon can be created on each call
+	fun {SimplifyWeaponsState WeaponsState}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			if MinesLoading == Input.mine then
+				stateWeapons(nbMines:NbMines+1 minesLoading:0 nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			elseif MissilesLoading == Input.missile then
+				stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles+1 missilesLoading:0 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			elseif DronesLoading == Input.drone then
+				stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones+1 dronesLoading:0 nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			elseif SonarsLoading == Input.sonar then
+				stateWeapons(nbMines:NbMines miensLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars+1 sonarsLoading:0)
+			else WeaponsState
+			end
 		end
 	end
 	
