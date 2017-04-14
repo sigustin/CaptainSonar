@@ -17,14 +17,18 @@ define
 	InitPosition
 	Move
 	SquareNotVisited
+	ChooseRandomDirection
 	
 	PositionIsValid
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% This port object uses the state
-	% @stateRandomAI(life:Life pos:Position dir:Direction visited:SquaresVisited)
+	% @stateRandomAI(life:Life pos:Position dir:Direction visited:SquaresVisited canDive:CanDive)
 	% @SquaresVisited is a list of all the positions visited since the last surface phase
 	%                 Those cannot be visited again on the same diving phase
+	% @CanDive is a boolean saying if the player has been granted the permission to dive
+	%          we consider that this boolean == false when the player is underwater
+	%                    => Main should NOT allow a player to dive while it's underwater
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	%============== Make the port object ========================
@@ -36,7 +40,7 @@ in
 	in		
 		{NewPort Stream Port}
 		thread
-			{TreatStream Stream ID Color stateRandomAI(life:Input.maxDamage pos:{InitPosition} dir:surface visited:nil)}
+			{TreatStream Stream ID Color stateRandomAI(life:Input.maxDamage pos:{InitPosition} dir:surface canDive:false visited:nil)}
 		end
 		Port
 	end
@@ -62,31 +66,32 @@ in
 		ReturnedState
 	in
 		case State
-		of stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares) then
+		of stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares) then
 			case Msg
 			%---------- Initialize position -------------
 			of initPosition(?ID ?Position) then
 				ID = PlayerID
 				Position = PlayerPosition
 				%return
-				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares)
+				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares)
 			%---------- Move player -------------------
 			[] move(?ID ?Position ?Direction) then
-				case {Move posState(pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares)}
-				of posState(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) then
+				case {Move posState(pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares)}
+				of posState(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) then
 					ID = PlayerID
 					Position = NewPosition
 					Direction = NewDirection
 					%return
-					ReturnedState = stateRandomAI(life:PlayerLife pos:NewPosition dir:NewDirection visited:NewVisitedSquares)
+					ReturnedState = stateRandomAI(life:PlayerLife pos:NewPosition dir:NewDirection cnaDive:NewCanDive visited:NewVisitedSquares)
 				else %something went wrong
 					ID = null
 					%return the same state as before
-					ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares)
+					ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares)
 				end
-			 %[] dive then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			%---------- Provide the permission to dive -------------
+			% This should be called only if PlayerDirection == surface
+			[] dive then
+				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:true visited:VisitedSquares)
 			 %[] chargeItem(ID KindItem) then
 				%{Browser.browse 'coucou pas encore implémenté'}
 				%...
@@ -138,7 +143,6 @@ in
 			 %[] sayDamageTaken(ID Damage LifeLeft) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
-			
 			end
 		end
 		ReturnedState
@@ -162,17 +166,34 @@ in
 	%         (we keep track of the visited squares with @SquareVisited
 	fun {Move PositionState}
 		case PositionState
-		of posState(pos:Position dir:Direction visited:SquaresVisited) then
+		of posState(pos:Position dir:Direction canDive:CanDive visited:SquaresVisited) then
+			%-------- Player is at the surface => choose to dive if you're allowed to ----------
 			if Direction == surface then
-				%return
-				posState(pos:Position dir:Direction visited:nil)
-			else
+				if CanDive then
+					% One-in-two chance of diving if you have the permission to dive
+					% If you dive, you cannot move at the same time (same turn) ?
+					
+					% Dive
+					if {OS.rand} mod 2 == 1 then
+						%return
+						posState(pos:Position dir:{ChooseRandomDirection} canDive:false visited:Position|nil)
+					% Don't dive
+					else
+						%return
+						PositionState
+					end
+				else
+					%return
+					posState(pos:Position dir:Direction canDive:CanDive visited:nil)
+				end
+			%--------- Player is underwater => move to another position ---------------
+			else %Direction \= surface => CanDive = false
 				NewPosition = pt(x:Position.x+({OS.rand} mod 2) y:Position.y+({OS.rand} mod 2))
 			in
 				if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition SquaresVisited} then
 					%return
 					posState(pos:NewPosition dir:Direction visited:NewPosition|SquaresVisited)
-				else {Move PositionState}
+				else {Move PositionState} %Choose another new position
 				end
 			end
 		else null
@@ -187,6 +208,16 @@ in
 			if Position == Square then false
 			else {SquareNotVisited Position Remainder}
 			end
+		end
+	end
+	
+	% @ChooseRandomDirection : returns one of the 4 directions randomly chosen (north, south, west or east)
+	fun {ChooseRandomDirection}
+		case {OS.rand} mod 4
+		of 1 then north
+		[] 2 then south
+		[] 3 then west
+		[] 4 then east
 		end
 	end
 	

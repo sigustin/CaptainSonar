@@ -28,7 +28,7 @@ in
 	%                  and puts them in @PortsPlayer (with IDs in descending order)
 	proc {CreatePlayers}
 		fun {Loop Count PlayersList}
-			{Browser.browse Count}
+			%{Browser.browse Count}
 			if Count > Input.nbPlayer then
 				PlayersList
 			else
@@ -36,7 +36,7 @@ in
 					CurrentColor = {GenerateColor}
 					CurrentPlayer
 				in
-					CurrentPlayer = {PlayerManager.playerGenerator player000randomai CurrentColor Count}%TODO use @Input.players
+					CurrentPlayer = {PlayerManager.playerGenerator player000randomai CurrentColor Count}%TODO use @Input.players and @Input.colors
 					{Loop Count+1 CurrentPlayer|PlayersList}
 				end
 			end
