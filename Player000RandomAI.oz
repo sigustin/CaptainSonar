@@ -33,6 +33,8 @@ define
 	
 	ExplodeMine
 	
+	ExplosionHappened
+	
 	PositionIsValid
 	
 	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 minesPlaced:nil nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLoading:0 nbSonars:0 sonarsLoading:0)
@@ -156,6 +158,7 @@ in
 					%return
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 				end
+			%-------- Choose to explode a placed mine -----------------
 			[] fireMine(?ID ?Mine) then
 				ID = PlayerID
 				case {ExplodeMine WeaponsState}
@@ -163,6 +166,7 @@ in
 					Mine = MineExploding
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 				end
+			%-------- Is this player at the surface? ------------------
 			[] isSurface(ID Answer) then
 				ID = PlayerID
 				case LocationState
@@ -184,9 +188,28 @@ in
 			 %[] sayMinePlaced(ID) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
-			 %[] sayMissileExplode(ID Position Message) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			%------------- A missile exploded (is this player damaged?) -----------------
+			[] sayMissileExplode(ID Position ?Message) then
+				case {ExplosionHappened Position State}
+				of DamageTaken#NewState then
+					if DamageTaken == 0 then
+						% No damage => no changes
+						Message = null
+						ReturnedState = State
+					else
+						% Damage taken => change state and send message
+						case NewState
+						of stateRandomAI(life:CurrentLife locationState:LocationState weaponsState:WeaponsState) then
+							if CurrentLife =< 0 then %dead
+								Message = sayDeath(PlayerID)
+								ReturnedState = stateRandomAI(life:0 locationState:LocationState weaponsState:WeaponsState)
+							else
+								Message = sayDamageTaken(PlayerID DamageTaken CurrentLife)
+								ReturnedState = stateRandomAI(life:CurrentLife locationState:LocationState weaponsState:WeaponsState)
+							end
+						end
+					end
+				end
 			 %[] sayMineExplode(ID Position Message) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
@@ -211,6 +234,8 @@ in
 			 %[] sayDamageTaken(ID Damage LifeLeft) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
+			else %Unknown message => don't do anything
+				ReturnedState = State
 			end
 		end
 		ReturnedState
@@ -454,6 +479,25 @@ in
 			case {Loop MinesPlaced nil}
 			of Mine#RemainingMines then
 				Mine#stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:RemainingMines nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			end
+		end
+	end
+	
+	%========= Procedures about taking damages ===============
+	% @ExplosionHappened : Computes the damages taken as something (mine or missile) explode
+	%                      at position @ExplosionPosition
+	%                      Returns the number of damages taken and the new state (with the life left)
+	fun {ExplosionHappened ExplosionPosition State}
+		case State
+		of stateRandomAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState) then
+			Distance = {Abs (PlayerPosition.x-ExplosionPosition.x)}+{Abs (PlayerPosition.y-ExplosionPosition.y)}
+		in
+			if Distance >= 2 then %Too far => no damage
+				0#State
+			elseif Distance == 1 then %1 damage
+				1#stateRandomAI(life:Life-1 locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState)
+			else %Distance == 0 => 2 damages
+				2#stateRandomAI(life:Life-2 locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState)
 			end
 		end
 	end
