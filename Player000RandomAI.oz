@@ -163,9 +163,15 @@ in
 					Mine = MineExploding
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 				end
-			%[] isSurface(ID Answer) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			[] isSurface(ID Answer) then
+				ID = PlayerID
+				case LocationState
+				of stateLocation(pos:_ dir:Direction canDive:_ visited:_) then
+					if Direction == surface then Answer = true
+					else Answer = false
+					end
+				end
+				ReturnedState = State
 			 %[] sayMove(ID Direction) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
