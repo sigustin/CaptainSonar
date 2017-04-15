@@ -154,18 +154,6 @@ in
 					%return
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 				end
-<<<<<<< HEAD
-			 %[] dive then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
-			 %[] chargeItem(ID KindItem) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
-			 %[] fireItem(ID KindFire) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
-=======
->>>>>>> 73b677c9b1dcaa9cf57086e5842d49a99e69aea6
 			 %[] fireMine(ID KindItem) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
