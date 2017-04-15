@@ -203,9 +203,23 @@ in
 					Message = Msg
 					ReturnedState = NewState
 				end
-			 %[] sayPassingDrone(Drone ID Answer) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			%------- A drone is asking if this player is on a certain row/column ---------
+			[] sayPassingDrone(Drone ?ID ?Answer) then
+				ID = PlayerID
+				case LocationState
+				of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+					case Drone
+					of drone(row:Row) then
+						if PlayerPosition.y == Row then Answer = true
+						else Answer = false
+						end
+					[] drone(column:Column) then
+						if PlayerPosition.x == Column then Answer = true
+						else Answer = false
+						end
+					end
+				end
+				ReturnedState = State
 			 %[] sayAnswerDrone(Drone ID Answer) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
