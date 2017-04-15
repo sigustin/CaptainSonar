@@ -34,6 +34,7 @@ define
 	ExplodeMine
 	
 	ExplosionHappened
+	ComputeDamage
 	
 	PositionIsValid
 	
@@ -190,25 +191,10 @@ in
 				%...
 			%------------- A missile exploded (is this player damaged?) -----------------
 			[] sayMissileExplode(ID Position ?Message) then
-				case {ExplosionHappened Position State}
-				of DamageTaken#NewState then
-					if DamageTaken == 0 then
-						% No damage => no changes
-						Message = null
-						ReturnedState = State
-					else
-						% Damage taken => change state and send message
-						case NewState
-						of stateRandomAI(life:CurrentLife locationState:LocationState weaponsState:WeaponsState) then
-							if CurrentLife =< 0 then %dead
-								Message = sayDeath(PlayerID)
-								ReturnedState = stateRandomAI(life:0 locationState:LocationState weaponsState:WeaponsState)
-							else
-								Message = sayDamageTaken(PlayerID DamageTaken CurrentLife)
-								ReturnedState = stateRandomAI(life:CurrentLife locationState:LocationState weaponsState:WeaponsState)
-							end
-						end
-					end
+				case {ExplosionHappened Position PlayerID State}
+				of Msg#NewState then
+					Message = Msg
+					ReturnedState = NewState
 				end
 			 %[] sayMineExplode(ID Position Message) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
@@ -484,10 +470,40 @@ in
 	end
 	
 	%========= Procedures about taking damages ===============
-	% @ExplosionHappened : Computes the damages taken as something (mine or missile) explode
+	% @ExplosionHappened : Computes the message to send to the game controller when something explode
+	%                      at position @ExplodePosition and updates the player's state
+	fun {ExplosionHappened ExplosionPosition PlayerID State}
+		Message
+		UpdatedState
+	in
+		case {ComputeDamage ExplosionPosition State}
+		of DamageTaken#NewState then
+			if DamageTaken == 0 then
+				% No damage => no changes
+				Message = null
+				UpdatedState = State
+			else
+				% Damage taken => change state and send message
+				case NewState
+				of stateRandomAI(life:CurrentLife locationState:LocationState weaponsState:WeaponsState) then
+					if CurrentLife =< 0 then %dead
+						Message = sayDeath(PlayerID)
+						UpdatedState = stateRandomAI(life:0 locationState:LocationState weaponsState:WeaponsState)
+					else
+						Message = sayDamageTaken(PlayerID DamageTaken CurrentLife)
+						UpdatedState = stateRandomAI(life:CurrentLife locationState:LocationState weaponsState:WeaponsState)
+					end
+				end
+			end
+		end
+		%return
+		Message#UpdatedState
+	end
+	
+	% @ComputeDamage : Computes the damages taken as something (mine or missile) explode
 	%                      at position @ExplosionPosition
 	%                      Returns the number of damages taken and the new state (with the life left)
-	fun {ExplosionHappened ExplosionPosition State}
+	fun {ComputeDamage ExplosionPosition State}
 		case State
 		of stateRandomAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState) then
 			Distance = {Abs (PlayerPosition.x-ExplosionPosition.x)}+{Abs (PlayerPosition.y-ExplosionPosition.y)}
