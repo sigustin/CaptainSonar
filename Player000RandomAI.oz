@@ -154,9 +154,8 @@ in
 					% Fire a weapon of type @FiredWeaponType
 					case LocationState
 					of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
-						KindFire = {FireWeapon FiredWeaponType PlayerPosition}
+						KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
 					end
-					NewWeaponsState = {UpdateWeaponsState WeaponsState KindFire}
 					%return
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 				end
@@ -383,14 +382,24 @@ in
 	
 	% @FireWeapon : Creates the weapon of type @WeaponType that is going to be fired
 	%               (with all the necssary parameters to this weapon)
+	%               Returns it and the new weapons state with decremented count for this weapon
 	%               Call one of the following : @PlaceMine, @FireMissile, @FireDrone or @FireSonar
-	fun {FireWeapon WeaponType PlayerPosition}
-		case WeaponType
-		of mine then {PlaceMine PlayerPosition}
-		[] missile then {FireMissile PlayerPosition}
-		[] drone then {FireDrone}
-		[] sonar then {FireSonar}
-		else null
+	fun {FireWeapon WeaponType PlayerState}
+		case PlayerState
+		of stateRandomAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState) then
+			case WeaponType
+			of mine then
+				NewMine = {PlaceMine PlayerPosition}
+			in
+				NewMine#{UpdateWeaponsState WeaponsState NewMine}
+			[] missile then
+				{FireMissile PlayerPosition}#{UpdateWeaponsState WeaponsState WeaponType}
+			[] drone then
+				{FireDrone}#{UpdateWeaponsState WeaponsState WeaponType}
+			[] sonar then
+				{FireSonar}#{UpdateWeaponsState WeaponsState WeaponType}
+			else null
+			end
 		end
 	end
 	
@@ -436,19 +445,20 @@ in
 		sonar
 	end
 	
-	% @UpdateWeaponsState : Called when a weapon is fired
+	% @UpdateWeaponsState : Called when a weapon is fired (from @FireWeapon)
 	%                       Returns a new weapons' state with a decremented count
 	%                       of the weapon type fired and an updated list of mines placed
 	%                       if a mine was placed
-	%                       This should never be called for a weapon type that has already reached 0
+	%                       ! @WeaponFired is a the weapon fired in case of a mine
+	%                         but the type of the weapon in any other case !
+	% This should never be called for a weapon type that has already reached 0
 	fun {UpdateWeaponsState WeaponsState WeaponFired}
 		case WeaponsState
 		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
 			case WeaponFired
 			of mine(_) then stateWeapons(nbMines:NbMines-1 minesLoading:MinesLoading minesPlaced:WeaponFired|MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
-			[] missile(_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles-1 missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
-			[] drone(row:_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
-			[] drone(column:_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] missile then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles-1 missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] drone then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] sonar then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars-1 sonarsLoading:SonarsLoading)
 			else WeaponsState
 			end
