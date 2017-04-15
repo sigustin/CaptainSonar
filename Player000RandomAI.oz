@@ -259,7 +259,7 @@ in
 	% @InitPosition : generates the initial position of this player
 	%                 here, it is random (but not on an island)
 	fun {InitPosition}
-		CurrentPosition = pt(x:({OS.rand} mod Input.nColumn)+1 y:({OS.rand} mod Input.nRow)+1)
+		CurrentPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
 	in
 		if {PositionIsValid CurrentPosition} then CurrentPosition
 		else {InitPosition}
@@ -415,7 +415,7 @@ in
 	%              but in the range from the player where it is allowed to place mines
 	%              Returns the created mine (with the position of setup as a parameter)
 	fun {PlaceMine PlayerPosition}
-		RandomPosition = pt(x:({OS.rand} mod Input.nColumn)+1 y:({OS.rand} mod Input.nRow)+1)
+		RandomPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
 		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
 	in
 		% Check the distances
@@ -428,7 +428,7 @@ in
 	%                but in the range from the player where it is allowed to make it explode
 	%                Returns the created missile (with the position of explosion as a parameter)
 	fun {FireMissile PlayerPosition}
-		RandomPosition = pt(x:({OS.rand} mod Input.nColumn)+1 y:({OS.rand} mod Input.nRow)+1)
+		RandomPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
 		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
 	in
 		% Check the distances
@@ -442,9 +442,9 @@ in
 	fun {FireDrone}
 		case {OS.rand} mod 2
 		of 0 then %row
-			drone(row:({OS.rand} mod Input.nRow)+1)
+			drone(row:({OS.rand} mod Input.nColumn)+1)
 		[] 1 then %column
-			drone(column:({OS.rand} mod Input.nColumn)+1)
+			drone(column:({OS.rand} mod Input.nRow)+1)
 		end
 	end
 	
@@ -557,9 +557,9 @@ in
 			%Choose which coordinate to fake
 			case {OS.rand} mod 2
 			of 0 then
-				pt(x:PlayerPosition.x y:({OS.rand} mod Input.nRow)+1)
+				pt(x:PlayerPosition.x y:({OS.rand} mod Input.nColumn)+1)
 			[] 1 then
-				pt(x:({OS.rand} mod Input.nColumn)+1 y:PlayerPosition.y)
+				pt(x:({OS.rand} mod Input.nRow)+1 y:PlayerPosition.y)
 			end
 		end
 	end
@@ -571,7 +571,7 @@ in
 	fun {PositionIsValid Position}
 		case Position
 		of pt(x:X y:Y) then
-			if X =< 0 orelse X > Input.nColumn orelse Y =< 0 orelse Y > Input.nRow then false
+			if X =< 0 orelse X > Input.nRow orelse Y =< 0 orelse Y > Input.nColumn then false
 			elseif {Nth {Nth Input.map X} Y} == 0 then true
 			else false
 			end
