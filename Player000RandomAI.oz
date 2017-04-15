@@ -301,54 +301,61 @@ in
 	end
 	
 	%======= Procedures to move randomly ========================
-	% @Move : move randomly one square in any direction
+	% @Move : move randomly one square in any direction or go to the surface
 	%         except if the current player is at the surface
 	%         We cannot move twice on the same square in the same diving phase
-	%         (we keep track of the visited squares with @SquareVisited
+	%         (we keep track of the visited squares with @SquareVisited)
 	fun {Move LocationState}
 		case LocationState
 		of stateLocation(pos:Position dir:Direction canDive:CanDive visited:SquaresVisited) then
 			%-------- Player is at the surface => choose to dive if you're allowed to ----------
 			if Direction == surface then
 				if CanDive then
-					% One-in-two chance of diving if you have the permission to dive
+					% One-in-five chance of diving if you have the permission to dive
 					% If you dive, you cannot move at the same time (same turn) ?
 					
-					% Dive
-					if {OS.rand} mod 2 == 1 then
-						%return
-						stateLocation(pos:Position dir:{ChooseRandomDirection} canDive:false visited:Position|nil)
 					% Don't dive
-					else
+					if {OS.rand} mod 5 == 0 then
 						%return
 						LocationState
+					% Dive
+					else
+						%return
+						stateLocation(pos:Position dir:{ChooseRandomDirection} canDive:false visited:Position|nil)
 					end
 				else
 					%return
 					stateLocation(pos:Position dir:Direction canDive:CanDive visited:nil)
 				end
 			%--------- Player is underwater => move to another position ---------------
+			%BUG if no place around is available (already visited)
 			else %Direction \= surface => CanDive = false
 				NewPosition
 				Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
 				DirectionTravelled %the direction towards which this player went
 			in
-				%Choose which axis to follow
-				if {OS.rand} mod 2 == 0 then % X-axis (vertically)
-					NewPosition = pt(x:Position.x+Movement y:Position.y)
-					if Movement == 1 then DirectionTravelled = south
-					else DirectionTravelled = north
-					end
-				else % Y-axis (horizontally)
-					NewPosition = pt(x:Position.x y:Position.y+Movement)
-					if Movement == 1 then DirectionTravelled = east
-					else DirectionTravelled = west
-					end
-				end
-				if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition SquaresVisited} then
+				%Choose if we should go to the surface or move
+				if {OS.rand} mod 10 == 0 then %surface
 					%return
-					stateLocation(pos:NewPosition dir:DirectionTravelled canDive:false visited:NewPosition|SquaresVisited)
-				else {Move LocationState} %Choose another new position
+					stateLocation(pos:Position dir:surface canDive:false visited:nil)
+				else
+					%Choose which axis to follow
+					if {OS.rand} mod 2 == 0 then % X-axis (vertically)
+						NewPosition = pt(x:Position.x+Movement y:Position.y)
+						if Movement == 1 then DirectionTravelled = south
+						else DirectionTravelled = north
+						end
+					else % Y-axis (horizontally)
+						NewPosition = pt(x:Position.x y:Position.y+Movement)
+						if Movement == 1 then DirectionTravelled = east
+						else DirectionTravelled = west
+						end
+					end
+					if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition SquaresVisited} then
+						%return
+						stateLocation(pos:NewPosition dir:DirectionTravelled canDive:false visited:NewPosition|SquaresVisited)
+					else {Move LocationState} %Choose another new position
+					end
 				end
 			end
 		else null

@@ -135,6 +135,9 @@ in
 		in
 			{Send PlayersPorts.1 dive}
 			{Send PlayersPorts.1 move(ID Position Direction)}
+			if Direction == surface then
+				{Send PortWindow surface(ID)}
+			end
 			{Browser.browse ID#Position#Direction}
 			{Send PortWindow movePlayer(ID Position)}
 		end
