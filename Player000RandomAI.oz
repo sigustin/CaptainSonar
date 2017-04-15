@@ -17,26 +17,55 @@ define
 	InitPosition
 	Move
 	SquareNotVisited
+	ChooseRandomDirection
+	
+	LoadRandomWeapon
+	NewWeaponAvailable
+	SimplifyWeaponsState
+	
+	ChooseWhichToFire
+	FireWeapon
+	PlaceMine
+	FireMissile
+	FireDrone
+	FireSonar
+	UpdateWeaponsState
 	
 	PositionIsValid
+	
+	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 minesPlaced:nil nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLoading:0 nbSonars:0 sonarsLoading:0)
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	% This port object uses the state
-	% @stateRandomAI(life:Life pos:Position dir:Direction visited:SquaresVisited)
-	% @SquaresVisited is a list of all the positions visited since the last surface phase
-	%                 Those cannot be visited again on the same diving phase
+	% This port object has an @ID containing the ID number, the color and the name of the object
+	% This port object uses the states
+	% @stateRandomAI(life:Life locationState:LocationState weaponsState:WeaponsState)
+	%     @LocationState is a record of type @stateLocation (defined hereafter)
+	%     @WeaponsState is a record of type @stateWeapons (defined hereafter)
+	% @stateLocation(pos:Position dir:Direction canDive:CanDive visited:VisitedSquares)
+	%     @CanDive is a boolean saying if the player has been granted the permission to dive
+	%              we consider that this boolean == false when the player is underwater
+	%     @SquaresVisited is a list of all the positions visited since the last surface phase
+	%                     Those cannot be visited again on the same diving phase
+	%                    => Main should NOT allow a player to dive while it's underwater
+	% @stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+	%    @nbX is the number of X available to the player
+	%    @XLoading is the number of loading charges for the weapon X currently loaded by the player
+	%              Input.X being the number of loading charges needed to charge one item of this type
+	%    @MinesPlaced is a list of all the mines that have been placed by the player
+	%              but haven't exploded yet
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	%============== Make the port object ========================
-	% @StartPlayer : Initializes the player (ID, color, position, etc.)
+	% @StartPlayer : Initializes the player (ID, position, weapons, etc.)
 	%                and create the port object
-	fun {StartPlayer Color ID}
+	fun {StartPlayer Color Num}
 		Stream
 		Port
+		ID = id(id:Num color:Color name:'randomAI'#{OS.rand})
 	in		
 		{NewPort Stream Port}
 		thread
-			{TreatStream Stream ID Color stateRandomAI(life:Input.maxDamage pos:{InitPosition} dir:surface visited:nil)}
+			{TreatStream Stream ID stateRandomAI(life:Input.maxDamage locationState:stateLocation(pos:{InitPosition} dir:surface canDive:false visited:nil) weaponsState:DefaultWeaponsState)}
 		end
 		Port
 	end
@@ -44,13 +73,13 @@ in
 	% @TreatStream : Loop that checks if some new messages are sent to the port 
 	%                and treats them
 	%                The attributes of this procedure keep track of the state of this port object
-	%                @ID and @Color should never be changed
+	%                @ID (contains an ID number, a color and a name) should never be changed
 	%                @State contains every attribute of the current port object that could change
 	%                       (thus here : position, direction, life of the player, etc.)
-	proc {TreatStream Stream ID Color State}
+	proc {TreatStream Stream ID State}
 		case Stream
 		of Msg|S2 then
-			{TreatStream S2 ID Color {Behavior Msg ID Color State}}
+			{TreatStream S2 ID {Behavior Msg ID State}}
 		else skip %something went wrong
 		end
 	end
@@ -58,32 +87,74 @@ in
 	%=============== Manage the messages ========================
 	% @Behavior : Behavior for every type of message sent on the port
 	%             Returns the new state
-	fun {Behavior Msg PlayerID PlayerColor State}
+	fun {Behavior Msg PlayerID State}
 		ReturnedState
 	in
 		case State
-		of stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares) then
+		of stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState) then
 			case Msg
 			%---------- Initialize position -------------
 			of initPosition(?ID ?Position) then
 				ID = PlayerID
-				Position = PlayerPosition
+				case LocationState
+				of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+					Position = PlayerPosition
+				end
 				%return
-				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares)
+				ReturnedState = State
 			%---------- Move player -------------------
 			[] move(?ID ?Position ?Direction) then
-				case {Move posState(pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares)}
-				of posState(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) then
+				case {Move LocationState}
+				of stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) then
 					ID = PlayerID
 					Position = NewPosition
 					Direction = NewDirection
 					%return
-					ReturnedState = stateRandomAI(life:PlayerLife pos:NewPosition dir:NewDirection visited:NewVisitedSquares)
+					ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) weaponsState:WeaponsState)
 				else %something went wrong
 					ID = null
 					%return the same state as before
-					ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares)
+					ReturnedState = State
 				end
+			%---------- Provide the permission to dive -------------
+			% This should be called only if PlayerDirection == surface
+			[] dive then
+				case LocationState
+				of stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:_ visited:VisitedSquares) then
+					ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:true visited:VisitedSquares) weaponsState:WeaponsState)
+				end
+			%------- Increase the loading charge of an item ------------
+			[] chargeItem(?ID ?KindItem) then
+				NewWeaponsState
+				SimplifiedWeaponsState
+			in
+				ID = PlayerID
+				% Load one of the weapons's loading charge
+				NewWeaponsState = {LoadRandomWeapon WeaponsState}
+				% Check if a new weapon can be created
+				KindItem = {NewWeaponAvailable NewWeaponsState}
+				% Create the knew weapons state
+				SimplifiedWeaponsState = {SimplifyWeaponsState NewWeaponsState}
+				%return
+				ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
+			%------- Fire a weapon -------------
+			% If a weapon is available, randomly choose to use one
+			[] fireItem(ID KindFire) then
+				FiredWeaponType = {ChooseWhichToFire WeaponsState}
+				NewWeaponsState
+			in
+				ID = PlayerID
+				if FiredWeaponType \= null then
+					% Fire a weapon of type @FiredWeaponType
+					case LocationState
+					of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+						KindFire = {FireWeapon FiredWeaponType PlayerPosition}
+					end
+					NewWeaponsState = {UpdateWeaponsState WeaponsState KindFire}
+					%return
+					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
+				end
+<<<<<<< HEAD
 			 %[] dive then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
@@ -93,6 +164,8 @@ in
 			 %[] fireItem(ID KindFire) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
+=======
+>>>>>>> 73b677c9b1dcaa9cf57086e5842d49a99e69aea6
 			 %[] fireMine(ID KindItem) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
@@ -138,7 +211,6 @@ in
 			 %[] sayDamageTaken(ID Damage LifeLeft) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
-			
 			end
 		end
 		ReturnedState
@@ -160,19 +232,36 @@ in
 	%         except if the current player is at the surface
 	%         We cannot move twice on the same square in the same diving phase
 	%         (we keep track of the visited squares with @SquareVisited
-	fun {Move PositionState}
-		case PositionState
-		of posState(pos:Position dir:Direction visited:SquaresVisited) then
+	fun {Move LocationState}
+		case LocationState
+		of stateLocation(pos:Position dir:Direction canDive:CanDive visited:SquaresVisited) then
+			%-------- Player is at the surface => choose to dive if you're allowed to ----------
 			if Direction == surface then
-				%return
-				posState(pos:Position dir:Direction visited:nil)
-			else
+				if CanDive then
+					% One-in-two chance of diving if you have the permission to dive
+					% If you dive, you cannot move at the same time (same turn) ?
+					
+					% Dive
+					if {OS.rand} mod 2 == 1 then
+						%return
+						stateLocation(pos:Position dir:{ChooseRandomDirection} canDive:false visited:Position|nil)
+					% Don't dive
+					else
+						%return
+						LocationState
+					end
+				else
+					%return
+					stateLocation(pos:Position dir:Direction canDive:CanDive visited:nil)
+				end
+			%--------- Player is underwater => move to another position ---------------
+			else %Direction \= surface => CanDive = false
 				NewPosition = pt(x:Position.x+({OS.rand} mod 2) y:Position.y+({OS.rand} mod 2))
 			in
 				if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition SquaresVisited} then
 					%return
-					posState(pos:NewPosition dir:Direction visited:NewPosition|SquaresVisited)
-				else {Move PositionState}
+					stateLocation(pos:NewPosition dir:Direction visited:NewPosition|SquaresVisited)
+				else {Move LocationState} %Choose another new position
 				end
 			end
 		else null
@@ -186,6 +275,160 @@ in
 		[] Square|Remainder then
 			if Position == Square then false
 			else {SquareNotVisited Position Remainder}
+			end
+		end
+	end
+	
+	% @ChooseRandomDirection : returns one of the 4 directions randomly chosen (north, south, west or east)
+	fun {ChooseRandomDirection}
+		case {OS.rand} mod 4
+		of 0 then north
+		[] 1 then south
+		[] 2 then west
+		[] 3 then east
+		end
+	end
+	
+	%======== Procedures for loading weapons =================================
+	% @LoadRandomWeapon : Randomly chooses a weapon to load and increment its loading charge
+	%                     Returns the updated weapons's state
+	fun {LoadRandomWeapon WeaponsState}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			case {OS.rand} mod 4
+			of 0 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading+1 minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] 1 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading+1 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] 2 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading+1 nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] 3 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading+1)
+			end
+		end
+	end
+	
+	% @NewWeaponAvailable : Check if @WeaponsState has one of its loading
+	%                       that allows one weapon to be created
+	%                       Returns the type of weapon created or @null if no weapon can be created
+	%                       Called everytime a loading charge is increased
+	fun {NewWeaponAvailable WeaponsState}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			if MinesLoading == Input.mine then mine
+			elseif MissilesLoading == Input.missile then missile
+			elseif DronesLoading == Input.drone then drone
+			elseif SonarsLoading == Input.sonar then sonar
+			else null
+			end
+		end
+	end
+	
+	% @SimplifyWeaponsState : If a weapon can be created, increses the weapon's count
+	%                         and decreases the weapon's loading charge
+	%                         Returns the new weapons's state
+	%                         Called everytime a loading charge is increased
+	%                              => only one weapon can be created on each call
+	fun {SimplifyWeaponsState WeaponsState}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			if MinesLoading == Input.mine then
+				stateWeapons(nbMines:NbMines+1 minesLoading:0 minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			elseif MissilesLoading == Input.missile then
+				stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles+1 missilesLoading:0 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			elseif DronesLoading == Input.drone then
+				stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones+1 dronesLoading:0 nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			elseif SonarsLoading == Input.sonar then
+				stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars+1 sonarsLoading:0)
+			else WeaponsState
+			end
+		end
+	end
+	
+	%========== Procedures for firing weapons ==============
+	% @ChooseWhichToFire : If a weapon is available, randomly decides which weapon to fire
+	%                      Returns one of the following : @null, @mine, @missile, @drone, @sonar
+	fun {ChooseWhichToFire WeaponsState}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:_ minesPlaced:_ nbMissiles:NbMissiles missilesLoading:_ nbDrones:NbDrones dronesLoading:_ nbSonars:NbSonars sonarsLoading:_) then
+			% Choose a type of weapon to try and fire
+			case {OS.rand} mod 4
+			% If a weapon is available, fire it with a one-in-two chance
+			of 0 then if NbMines > 0 andthen ({OS.rand} mod 2) then mine else null end
+			[] 1 then if NbMissiles > 0 andthen ({OS.rand} mod 2) then missile else null end
+			[] 2 then if NbDrones > 0 andthen ({OS.rand} mod 2) then drone else null end
+			[] 3 then if NbSonars > 0 andthen ({OS.rand} mod 2) then sonar else null end
+			else null
+			end
+		end
+	end
+	
+	% @FireWeapon : Creates the weapon of type @WeaponType that is going to be fired
+	%               (with all the necssary parameters to this weapon)
+	%               Call one of the following : @PlaceMine, @FireMissile, @FireDrone or @FireSonar
+	fun {FireWeapon WeaponType PlayerPosition}
+		case WeaponType
+		of mine then {PlaceMine PlayerPosition}
+		[] missile then {FireMissile PlayerPosition}
+		[] drone then {FireDrone}
+		[] sonar then {FireSonar}
+		else null
+		end
+	end
+	
+	% @PlaceMine : Creates a mine at a random position on the grid
+	%              but in the range from the player where it is allowed to place mines
+	%              Returns the created mine (with the position of setup as a parameter)
+	fun {PlaceMine PlayerPosition}
+		RandomPosition = pt(x:({OS.rand} mod Input.nRow) y:({OS.rand} mod Input.nColumn))
+		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
+	in
+		% Check the distances
+		if DistanceFromPlayer >= Input.minDistanceMine andthen DistanceFromPlayer =< Input.maxDistanceMine then mine(RandomPosition)
+		else {PlaceMine PlayerPosition}
+		end
+	end
+	
+	% @FireMissile : Creates a missile set to explode at a random position on the grid
+	%                but in the range from the player where it is allowed to make it explode
+	%                Returns the created missile (with the position of explosion as a parameter)
+	fun {FireMissile PlayerPosition}
+		RandomPosition = pt(x:({OS.rand} mod Input.nRow) y:({OS.rand} mod Input.nColumn))
+		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
+	in
+		% Check the distances
+		if DistanceFromPlayer >= Input.minDistanceMissile andthen DistanceFromPlayer =< Input.maxDistanceMissile then missile(RandomPosition)
+		else {FireMissile PlayerPosition}
+		end
+	end
+	
+	% @FireDrone : Creates a drone looking at a row or a column (one-in-two chance to be one or the other)
+	%              Returns this drone (with which row or column it is watching as a parameter)
+	fun {FireDrone}
+		case {OS.rand} mod 2
+		of 0 then %row
+			drone(row:({OS.rand} mod Input.nRow))
+		[] 1 then %column
+			drone(column:({OS.rand} mod Input.nColumn))
+		end
+	end
+	
+	% @FireSonar : Creates a sonar and returns it
+	fun {FireSonar}
+		sonar
+	end
+	
+	% @UpdateWeaponsState : Called when a weapon is fired
+	%                       Returns a new weapons' state with a decremented count
+	%                       of the weapon type fired and an updated list of mines placed
+	%                       if a mine was placed
+	%                       This should never be called for a weapon type that has already reached 0
+	fun {UpdateWeaponsState WeaponsState WeaponFired}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			case WeaponFired
+			of mine(_) then stateWeapons(nbMines:NbMines-1 minesLoading:MinesLoading minesPlaced:WeaponFired|MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] missile(_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles-1 missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] drone(row:_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] drone(column:_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] sonar then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars-1 sonarsLoading:SonarsLoading)
+			else WeaponsState
 			end
 		end
 	end

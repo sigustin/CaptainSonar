@@ -11,16 +11,16 @@ import
 	PlayerManager
 define
 	%============= Variables ====================
-		PortWindow
-        PlayersPorts %List of all the players' ports => size == Input.nbPlayer
-        PlayersPositions
+	PortWindow
+	PlayersPorts %List of all the players' ports => size == Input.nbPlayer
+	PlayersPositions %List of all the players' positions
 	
 	%========== Functions and procedures =====================
-		CreatePlayers
-        GenerateColor
-        SetUp
-        TurnByTurn
-        Simultaneous
+	CreatePlayers
+	GenerateColor %unused
+	SetUpAndShow
+	TurnByTurn
+	Simultaneous
 in
 
 	%======== Functions and procedures definitions ============
@@ -28,15 +28,14 @@ in
 	%                  and puts them in @PortsPlayer (with IDs in descending order)
 	proc {CreatePlayers}
 		fun {Loop Count PlayersList}
-			{Browser.browse Count}
+			%{Browser.browse Count}
 			if Count > Input.nbPlayer then
 				PlayersList
 			else
 				local
-					CurrentColor = {GenerateColor}
 					CurrentPlayer
 				in
-					CurrentPlayer = {PlayerManager.playerGenerator player000randomai CurrentColor Count}%TODO use @Input.players
+					CurrentPlayer = {PlayerManager.playerGenerator {Nth Input.players Count} {Nth Input.colors Count} Count}
 					{Loop Count+1 CurrentPlayer|PlayersList}
 				end
 			end
@@ -49,18 +48,24 @@ in
 	%                  TODO it should be changed to generate colors that are always
 	%                       different from one another and not too close to one another
 	%                       (2 players should easily be differentiable)
+	% UNUSED
 	fun {GenerateColor}
 		c( ({OS.rand} mod 256) 
 		   ({OS.rand} mod 256) 
 		   ({OS.rand} mod 256) )
 	end
 
-	% @SetUp : ask each Player is initial position (allow multiple boats at the same place? YES cf. pdf)
-	fun {SetUp PlayersPorts}
+	% @SetUpAndShow : ask each Player its initial position (allow multiple boats at the same place? YES cf. pdf)
+	%                 Then sends a message to the GUI to display their initial position
+	fun {SetUpAndShow PlayersPorts}
 	   case PlayersPorts
 	   of P|H then ID Position in
+	   	% Set up the current player
 	      {Send P initPosition(ID Position)}
-	      Position|{SetUp H}
+	      % Show the current player
+	      {Send PortWindow initPlayer(ID Position)}
+	      %return
+	      Position|{SetUpAndShow H}
 	   [] nil then
 	      nil
 	   end
@@ -90,7 +95,7 @@ in
 	{Browser.browse 'Input.nbPlayer'#Input.nbPlayer}
 	{Browser.browse 'PlayersPorts'#PlayersPorts}
 
-	PlayersPositions = {SetUp PlayersPorts}
+	PlayersPositions = {SetUpAndShow PlayersPorts}
 	%for Pos in PlayersPositions do
 	%	{Browser.browse Pos}
 	%end
