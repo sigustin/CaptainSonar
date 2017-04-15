@@ -140,11 +140,9 @@ in
 				% Load one of the weapons's loading charge
 				NewWeaponsState = {LoadRandomWeapon WeaponsState}
 				% Check if a new weapon can be created
-				KindItem = {NewWeaponAvailable NewWeaponsState}
-				% Create the knew weapons state
-				SimplifiedWeaponsState = {SimplifyWeaponsState NewWeaponsState}
+				KindItem#SimplifiedWeaponsState = {NewWeaponAvailable NewWeaponsState}
 				%return
-				ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
+				ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:SimplifiedWeaponsState)
 			%------- Fire a weapon -------------
 			% If a weapon is available, randomly choose to use one
 			[] fireItem(ID KindFire) then
@@ -347,36 +345,20 @@ in
 	% @NewWeaponAvailable : Check if @WeaponsState has one of its loading
 	%                       that allows one weapon to be created
 	%                       Returns the type of weapon created or @null if no weapon can be created
+	%                       and the new weapons state
 	%                       Called everytime a loading charge is increased
 	fun {NewWeaponAvailable WeaponsState}
 		case WeaponsState
 		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
-			if MinesLoading == Input.mine then mine
-			elseif MissilesLoading == Input.missile then missile
-			elseif DronesLoading == Input.drone then drone
-			elseif SonarsLoading == Input.sonar then sonar
-			else null
-			end
-		end
-	end
-	
-	% @SimplifyWeaponsState : If a weapon can be created, increses the weapon's count
-	%                         and decreases the weapon's loading charge
-	%                         Returns the new weapons's state
-	%                         Called everytime a loading charge is increased
-	%                              => only one weapon can be created on each call
-	fun {SimplifyWeaponsState WeaponsState}
-		case WeaponsState
-		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
 			if MinesLoading == Input.mine then
-				stateWeapons(nbMines:NbMines+1 minesLoading:0 minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+				mine#stateWeapons(nbMines:NbMines+1 minesLoading:0 minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			elseif MissilesLoading == Input.missile then
-				stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles+1 missilesLoading:0 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+				missile#stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles+1 missilesLoading:0 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			elseif DronesLoading == Input.drone then
-				stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones+1 dronesLoading:0 nbSonars:NbSonars sonarsLoading:SonarsLoading)
+				drone#stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones+1 dronesLoading:0 nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			elseif SonarsLoading == Input.sonar then
-				stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars+1 sonarsLoading:0)
-			else WeaponsState
+				sonar#stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars+1 sonarsLoading:0)
+			else null#WeaponsState
 			end
 		end
 	end
