@@ -33,7 +33,7 @@ define
 	
 	PositionIsValid
 	
-	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLoading:0 nbSonars:0 sonarsLoading:0)
+	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 minesPlaced:nil nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLoading:0 nbSonars:0 sonarsLoading:0)
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% This port object has an @ID containing the ID number, the color and the name of the object
@@ -47,10 +47,12 @@ in
 	%     @SquaresVisited is a list of all the positions visited since the last surface phase
 	%                     Those cannot be visited again on the same diving phase
 	%                    => Main should NOT allow a player to dive while it's underwater
-	% @stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+	% @stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 	%    @nbX is the number of X available to the player
-	%    @XLoading is the number of loading charges currently loaded by the player
+	%    @XLoading is the number of loading charges for the weapon X currently loaded by the player
 	%              Input.X being the number of loading charges needed to charge one item of this type
+	%    @MinesPlaced is a list of all the mines that have been placed by the player
+	%              but haven't exploded yet
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	%============== Make the port object ========================
@@ -148,7 +150,7 @@ in
 					of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
 						KindFire = {FireWeapon FiredWeaponType PlayerPosition}
 					end
-					NewWeaponsState = {UpdateWeaponsState WeaponsState FiredWeaponType}
+					NewWeaponsState = {UpdateWeaponsState WeaponsState KindFire}
 					%return
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 				end
@@ -247,7 +249,7 @@ in
 				if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition SquaresVisited} then
 					%return
 					stateLocation(pos:NewPosition dir:Direction visited:NewPosition|SquaresVisited)
-				else {Move PositionState} %Choose another new position
+				else {Move LocationState} %Choose another new position
 				end
 			end
 		else null
@@ -280,12 +282,12 @@ in
 	%                     Returns the updated weapons's state
 	fun {LoadRandomWeapon WeaponsState}
 		case WeaponsState
-		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
 			case {OS.rand} mod 4
-			of 0 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading+1 nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
-			[] 1 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading+1 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
-			[] 2 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading+1 nbSonars:NbSonars sonarsLoading:SonarsLoading)
-			[] 3 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading+1)
+			of 0 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading+1 minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] 1 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading+1 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] 2 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading+1 nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] 3 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading+1)
 			end
 		end
 	end
@@ -296,7 +298,7 @@ in
 	%                       Called everytime a loading charge is increased
 	fun {NewWeaponAvailable WeaponsState}
 		case WeaponsState
-		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
 			if MinesLoading == Input.mine then mine
 			elseif MissilesLoading == Input.missile then missile
 			elseif DronesLoading == Input.drone then drone
@@ -306,22 +308,22 @@ in
 		end
 	end
 	
-	% @SimplifyWeaponsState : If a weapon can be created, creates the weapon
+	% @SimplifyWeaponsState : If a weapon can be created, increses the weapon's count
 	%                         and decreases the weapon's loading charge
 	%                         Returns the new weapons's state
 	%                         Called everytime a loading charge is increased
 	%                              => only one weapon can be created on each call
 	fun {SimplifyWeaponsState WeaponsState}
 		case WeaponsState
-		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
 			if MinesLoading == Input.mine then
-				stateWeapons(nbMines:NbMines+1 minesLoading:0 nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+				stateWeapons(nbMines:NbMines+1 minesLoading:0 minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			elseif MissilesLoading == Input.missile then
-				stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles+1 missilesLoading:0 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+				stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles+1 missilesLoading:0 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			elseif DronesLoading == Input.drone then
-				stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones+1 dronesLoading:0 nbSonars:NbSonars sonarsLoading:SonarsLoading)
+				stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones+1 dronesLoading:0 nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			elseif SonarsLoading == Input.sonar then
-				stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars+1 sonarsLoading:0)
+				stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars+1 sonarsLoading:0)
 			else WeaponsState
 			end
 		end
@@ -332,7 +334,7 @@ in
 	%                      Returns one of the following : @null, @mine, @missile, @drone, @sonar
 	fun {ChooseWhichToFire WeaponsState}
 		case WeaponsState
-		of stateWeapons(nbMines:NbMines minesLoading:_ nbMissiles:NbMissiles missilesLoading:_ nbDrones:NbDrones dronesLoading:_ nbSonars:NbSonars sonarsLoading:_) then
+		of stateWeapons(nbMines:NbMines minesLoading:_ minesPlaced:_ nbMissiles:NbMissiles missilesLoading:_ nbDrones:NbDrones dronesLoading:_ nbSonars:NbSonars sonarsLoading:_) then
 			% Choose a type of weapon to try and fire
 			case {OS.rand} mod 4
 			% If a weapon is available, fire it with a one-in-two chance
@@ -402,16 +404,18 @@ in
 	
 	% @UpdateWeaponsState : Called when a weapon is fired
 	%                       Returns a new weapons' state with a decremented count
-	%                       of the weapon type fired
+	%                       of the weapon type fired and an updated list of mines placed
+	%                       if a mine was placed
 	%                       This should never be called for a weapon type that has already reached 0
-	fun {UpdateWeaponsState WeaponsState FiredWeaponType}
+	fun {UpdateWeaponsState WeaponsState WeaponFired}
 		case WeaponsState
-		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
-			case FiredWeaponType
-			of mine then stateWeapons(nbMines:NbMines-1 minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
-			[] missile then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles-1 missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
-			[] drone then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
-			[] sonar then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars-1 sonarsLoading:SonarsLoading)
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			case WeaponFired
+			of mine(_) then stateWeapons(nbMines:NbMines-1 minesLoading:MinesLoading minesPlaced:WeaponFired|MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] missile(_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles-1 missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] drone(row:_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] drone(column:_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] sonar then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars-1 sonarsLoading:SonarsLoading)
 			else WeaponsState
 			end
 		end
