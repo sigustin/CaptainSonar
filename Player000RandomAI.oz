@@ -196,9 +196,13 @@ in
 					Message = Msg
 					ReturnedState = NewState
 				end
-			 %[] sayMineExplode(ID Position Message) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			%--------- A mine exploded (is this player damaged?) -----------------
+			[] sayMineExplode(ID Position ?Message) then
+				case {ExplosionHappened Position PlayerID State}
+				of Msg#NewState then
+					Message = Msg
+					ReturnedState = NewState
+				end
 			 %[] sayPassingDrone(Drone ID Answer) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
