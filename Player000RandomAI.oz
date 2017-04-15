@@ -227,27 +227,28 @@ in
 					end
 				end
 				ReturnedState = State
-			 %[] sayAnswerDrone(Drone ID Answer) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			%--------- This player's drone came back with answers -----------
+			[] sayAnswerDrone(Drone ID Answer) then
+				%Ignore
+				ReturnedState = State
 			%---- A sonar is detecting => this player gives coordinates (one right, one wrong) --------
 			[] sayPassingSonar(?ID ?Answer) then
 				ID = PlayerID
 				Answer = {FakeCoordForSonars State}
 				
 				ReturnedState = State
-			 %[] sayAnswerSonar(ID Answer) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
-			 %[] sayDeath(ID) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
-			 %[] sayDeath(ID) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
-			 %[] sayDamageTaken(ID Damage LifeLeft) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			%--------- This player's sonar probing answers ----------------
+			[] sayAnswerSonar(ID Answer) then
+				%Ignore
+				ReturnedState = State
+			%------- Flash info : player @ID is dead --------------------
+			[] sayDeath(ID) then
+				%Ignore
+				ReturnedState = State
+			%--------- Flash info : player @ID has taken @Damage damages -------------
+			[] sayDamageTaken(ID Damage LifeLeft) then
+				%Ignore
+				ReturnedState = State
 			else %Unknown message => don't do anything
 				ReturnedState = State
 			end
