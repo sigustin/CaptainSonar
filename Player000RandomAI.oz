@@ -23,6 +23,14 @@ define
 	NewWeaponAvailable
 	SimplifyWeaponsState
 	
+	ChooseWhichToFire
+	FireWeapon
+	PlaceMine
+	FireMissile
+	FireDrone
+	FireSonar
+	UpdateWeaponsState
+	
 	PositionIsValid
 	
 	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLoading:0 nbSonars:0 sonarsLoading:0)
@@ -118,10 +126,21 @@ in
 				% Create the knew weapons state
 				SimplifiedWeaponsState = {SimplifyWeaponsState NewWeaponsState}
 				%return
-				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive cisited:VisitedSquares weaponsState:NewWeaponsState)
-			 %[] fireItem(ID KindFire) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+				ReturnedState = stateRandomAI(life:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares weaponsState:NewWeaponsState)
+			%------- Fire a weapon -------------
+			% If a weapon is available, randomly choose to use one
+			[] fireItem(ID KindFire) then
+				FiredWeaponType = {ChooseWhichToFire WeaponsState}
+				NewWeaponsState
+			in
+				ID = PlayerID
+				if FiredWeaponType \= null then
+					% Fire a weapon of type @FiredWeaponType
+					KindFire = {FireWeapon FiredWeaponType PlayerPosition}
+					NewWeaponsState = {UpdateWeaponsState WeaponsState FiredWeaponType}
+					%return
+					ReturnedState = stateRandomAI(lif:PlayerLife pos:PlayerPosition dir:PlayerDirection canDive:CanDive visited:VisitedSquares weaponsState:NewWeaponsState)
+				end
 			 %[] fireMine(ID KindItem) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
@@ -291,7 +310,97 @@ in
 			elseif DronesLoading == Input.drone then
 				stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones+1 dronesLoading:0 nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			elseif SonarsLoading == Input.sonar then
-				stateWeapons(nbMines:NbMines miensLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars+1 sonarsLoading:0)
+				stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars+1 sonarsLoading:0)
+			else WeaponsState
+			end
+		end
+	end
+	
+	%========== Procedures for firing weapons ==============
+	% @ChooseWhichToFire : If a weapon is available, randomly decides which weapon to fire
+	%                      Returns one of the following : @null, @mine, @missile, @drone, @sonar
+	fun {ChooseWhichToFire WeaponsState}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:_ nbMissiles:NbMissiles missilesLoading:_ nbDrones:NbDrones dronesLoading:_ nbSonars:NbSonars sonarsLoading:_) then
+			% Choose a type of weapon to try and fire
+			case {OS.rand} mod 4
+			% If a weapon is available, fire it with a one-in-two chance
+			of 0 then if NbMines > 0 andthen ({OS.rand} mod 2) then mine else null end
+			[] 1 then if NbMissiles > 0 andthen ({OS.rand} mod 2) then missile else null end
+			[] 2 then if NbDrones > 0 andthen ({OS.rand} mod 2) then drone else null end
+			[] 3 then if NbSonars > 0 andthen ({OS.rand} mod 2) then sonar else null end
+			else null
+			end
+		end
+	end
+	
+	% @FireWeapon : Creates the weapon of type @WeaponType that is going to be fired
+	%               (with all the necssary parameters to this weapon)
+	%               Call one of the following : @PlaceMine, @FireMissile, @FireDrone or @FireSonar
+	fun {FireWeapon WeaponType PlayerPosition}
+		case WeaponType
+		of mine then {PlaceMine PlayerPosition}
+		[] missile then {FireMissile PlayerPosition}
+		[] drone then {FireDrone}
+		[] sonar then {FireSonar}
+		else null
+		end
+	end
+	
+	% @PlaceMine : Creates a mine at a random position on the grid
+	%              but in the range from the player where it is allowed to place mines
+	%              Returns the created mine (with the position of setup as a parameter)
+	fun {PlaceMine PlayerPosition}
+		RandomPosition = pt(x:({OS.rand} mod Input.nRow) y:({OS.rand} mod Input.nColumn))
+		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
+	in
+		% Check the distances
+		if DistanceFromPlayer >= Input.minDistanceMine andthen DistanceFromPlayer =< Input.maxDistanceMine then mine(RandomPosition)
+		else {PlaceMine PlayerPosition}
+		end
+	end
+	
+	% @FireMissile : Creates a missile set to explode at a random position on the grid
+	%                but in the range from the player where it is allowed to make it explode
+	%                Returns the created missile (with the position of explosion as a parameter)
+	fun {FireMissile PlayerPosition}
+		RandomPosition = pt(x:({OS.rand} mod Input.nRow) y:({OS.rand} mod Input.nColumn))
+		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
+	in
+		% Check the distances
+		if DistanceFromPlayer >= Input.minDistanceMissile andthen DistanceFromPlayer =< Input.maxDistanceMissile then missile(RandomPosition)
+		else {FireMissile PlayerPosition}
+		end
+	end
+	
+	% @FireDrone : Creates a drone looking at a row or a column (one-in-two chance to be one or the other)
+	%              Returns this drone (with which row or column it is watching as a parameter)
+	fun {FireDrone}
+		case {OS.rand} mod 2
+		of 0 then %row
+			drone(row:({OS.rand} mod Input.nRow))
+		[] 1 then %column
+			drone(column:({OS.rand} mod Input.nColumn))
+		end
+	end
+	
+	% @FireSonar : Creates a sonar and returns it
+	fun {FireSonar}
+		sonar
+	end
+	
+	% @UpdateWeaponsState : Called when a weapon is fired
+	%                       Returns a new weapons' state with a decremented count
+	%                       of the weapon type fired
+	%                       This should never be called for a weapon type that has already reached 0
+	fun {UpdateWeaponsState WeaponsState FiredWeaponType}
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			case FiredWeaponType
+			of mine then stateWeapons(nbMines:NbMines-1 minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] missile then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles-1 missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] drone then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			[] sonar then stateWeapons(nbMines:NbMines minesLoading:MinesLoading nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars-1 sonarsLoading:SonarsLoading)
 			else WeaponsState
 			end
 		end

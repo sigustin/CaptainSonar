@@ -156,8 +156,8 @@ in
 			case List
 			of nil then nil
 			[] H|T then
-				if (H == Position) then
-					{RemoveItem Grid H}
+				if (H.2 == Position) then
+					{RemoveItem Grid H.1}
 					T
 				else
 					H|{RmMine Grid Position T}
