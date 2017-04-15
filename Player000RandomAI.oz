@@ -1,5 +1,6 @@
 %% Player000RandomAI.oz %%
 %% An AI that behaves in a random manner
+%% It doesn't care about what other players do and thus ignores the informative messages it gets
 
 functor
 import
@@ -179,18 +180,22 @@ in
 					end
 				end
 				ReturnedState = State
-			 %[] sayMove(ID Direction) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
-			 %[] saySurface(ID) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
-			 %[] sayCharge(ID KindItem) then
-				%{Browser.browse 'coucou pas encore implémenté'}
-				%...
-			 %[] sayMinePlaced(ID) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			%----- Flash info : player @ID has moved in the direction @Direction -----------
+			[] sayMove(ID Direction) then
+				%Ignore
+				ReturnedState = State
+			%----- Flash info : player @ID has made surface -----------------
+			[] saySurface(ID) then
+				%Ignore
+				ReturnedState = State
+			%------ Flash info : player @ID has the item @KindItem ------------
+			[] sayCharge(ID KindItem) then
+				%Ignore
+				ReturnedState = State
+			%------ Flash info : player @ID has placed a mine ----------------
+			[] sayMinePlaced(ID) then
+				%Ignore
+				ReturnedState = State
 			%------------- A missile exploded (is this player damaged?) -----------------
 			[] sayMissileExplode(ID Position ?Message) then
 				case {ExplosionHappened Position PlayerID State}
