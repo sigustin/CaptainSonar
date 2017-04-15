@@ -11,6 +11,10 @@ import
 export
 	portPlayer:StartPlayer
 define
+	proc {ERR Msg}
+		{Browser.browse 'There was a problem in Player000RandomAI'#Msg}
+	end
+
 	StartPlayer
 	TreatStream
 	Behavior
@@ -61,6 +65,11 @@ in
 	%              Input.X being the number of loading charges needed to charge one item of this type
 	%    @MinesPlaced is a list of all the mines that have been placed by the player
 	%              but haven't exploded yet
+	%
+	% If something goes wrong, it is possible that a variable that should get bound, does not
+	%                          making the program wait
+	%                          Though, an error message should be displayed
+	%                          (using the debug porcedure @ERR)
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	%============== Make the port object ========================
@@ -103,10 +112,13 @@ in
 			case Msg
 			%---------- Initialize position -------------
 			of initPosition(?ID ?Position) then
-				ID = PlayerID
 				case LocationState
 				of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+					ID = PlayerID
 					Position = PlayerPosition
+				else skip %something went wrong
+					ID = null
+					Position = invalid
 				end
 				%return
 				ReturnedState = State
@@ -120,7 +132,7 @@ in
 					%return
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) weaponsState:WeaponsState)
 				else %something went wrong
-					ID = null
+					{ERR 'LocationState has an invalid format'#LocationState}
 					%return the same state as before
 					ReturnedState = State
 				end
@@ -130,6 +142,9 @@ in
 				case LocationState
 				of stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:_ visited:VisitedSquares) then
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:true visited:VisitedSquares) weaponsState:WeaponsState)
+				else %something went wrong
+					{ERR 'LocationState has an invalid format'#LocationState}
+					ReturnedState = State
 				end
 			%------- Increase the loading charge of an item ------------
 			[] chargeItem(?ID ?KindItem) then
@@ -145,7 +160,7 @@ in
 				ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:SimplifiedWeaponsState)
 			%------- Fire a weapon -------------
 			% If a weapon is available, randomly choose to use one
-			[] fireItem(ID KindFire) then
+			[] fireItem(?ID ?KindFire) then
 				FiredWeaponType = {ChooseWhichToFire WeaponsState}
 				NewWeaponsState
 			in
@@ -155,6 +170,8 @@ in
 					case LocationState
 					of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
 						KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
+					else %something went wrong
+						{ERR 'LocationState has an invalid format'#LocationState}
 					end
 					%return
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
@@ -166,15 +183,20 @@ in
 				of MineExploding#NewWeaponsState then
 					Mine = MineExploding
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
+				else %something went wrong
+					{ERR 'ExplodeMine did not return a record correctly formatted'}
+					ReturnedState = State
 				end
 			%-------- Is this player at the surface? ------------------
-			[] isSurface(ID Answer) then
+			[] isSurface(?ID ?Answer) then
 				ID = PlayerID
 				case LocationState
 				of stateLocation(pos:_ dir:Direction canDive:_ visited:_) then
 					if Direction == surface then Answer = true
 					else Answer = false
 					end
+				else %something went wrong
+					{ERR 'LocationState has an invalid format'#LocationState}
 				end
 				ReturnedState = State
 			%----- Flash info : player @ID has moved in the direction @Direction -----------
@@ -199,6 +221,9 @@ in
 				of Msg#NewState then
 					Message = Msg
 					ReturnedState = NewState
+				else %something went wrong
+					{ERR 'ExplosionHappened did not return a record correctly formatted'}
+					ReturnedState = State
 				end
 			%--------- A mine exploded (is this player damaged?) -----------------
 			[] sayMineExplode(ID Position ?Message) then
@@ -206,6 +231,9 @@ in
 				of Msg#NewState then
 					Message = Msg
 					ReturnedState = NewState
+				else %something went wrong
+					{ERR 'ExplosionHappened did not return a record correctly formatted'}
+					ReturnedState = State
 				end
 			%------- A drone is asking if this player is on a certain row/column ---------
 			[] sayPassingDrone(Drone ?ID ?Answer) then
@@ -221,7 +249,11 @@ in
 						if PlayerPosition.x == Column then Answer = true
 						else Answer = false
 						end
+					else %something went wrong
+						{ERR 'Drone has an invalid format'#Drone}
 					end
+				else %something went wrong
+					{ERR 'LocationState has an invalid format'#LocationState}
 				end
 				ReturnedState = State
 			%--------- This player's drone came back with answers -----------
@@ -249,6 +281,9 @@ in
 			else %Unknown message => don't do anything
 				ReturnedState = State
 			end
+		else %something went wrong => State not in the right format => we reset the state
+			{ERR 'State has an invalid format'#State}
+			ReturnedState = stateRandomAI(life:Input.maxDamage locationState:stateLocation(pos:{InitPosition} dir:surface canDive:false visited:nil) weaponsState:DefaultWeaponsState)
 		end
 		ReturnedState
 	end
@@ -313,6 +348,9 @@ in
 			if Position == Square then false
 			else {SquareNotVisited Position Remainder}
 			end
+		else %something went wrong
+			{ERR 'SquaresVisited has an invalid format'#SquaresVisited}
+			true %Prevents looping forever
 		end
 	end
 	
@@ -323,6 +361,9 @@ in
 		[] 1 then south
 		[] 2 then west
 		[] 3 then east
+		else %something went wrong
+			{ERR 'Randomized out-of-bounds'}
+			north %because we have to return something
 		end
 	end
 	
@@ -337,7 +378,13 @@ in
 			[] 1 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading+1 nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] 2 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading+1 nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] 3 then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading+1)
+			else %something went wrong
+				{ERR 'Randomized out-of-bounds'}
+				WeaponsState %because we have to return something
 			end
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			WeaponsState %because we have to return something
 		end
 	end
 	
@@ -359,6 +406,9 @@ in
 				sonar#stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars+1 sonarsLoading:0)
 			else null#WeaponsState
 			end
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			null#WeaponsState %because we have to return something
 		end
 	end
 	
@@ -377,6 +427,9 @@ in
 			[] 3 then if NbSonars > 0 andthen ({OS.rand} mod 2) then sonar else null end
 			else null
 			end
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			null %because we have to return something
 		end
 	end
 	
@@ -400,6 +453,9 @@ in
 				{FireSonar}#{UpdateWeaponsState WeaponsState WeaponType}
 			else null
 			end
+		else %something went wrong
+			{ERR 'PlayerState has an invalid format'#PlayerState}
+			null %because we have to return something
 		end
 	end
 	
@@ -437,6 +493,9 @@ in
 			drone(row:({OS.rand} mod Input.nColumn)+1)
 		[] 1 then %column
 			drone(column:({OS.rand} mod Input.nRow)+1)
+		else %something went wrong
+			{ERR 'Randomized out-of-bounds'}
+			drone(row:({OS.rand} mod Input.nColumn)+1) %because we have to return something valid
 		end
 	end
 	
@@ -462,6 +521,9 @@ in
 			[] sonar then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars-1 sonarsLoading:SonarsLoading)
 			else WeaponsState
 			end
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			WeaponsState %because we have to return something
 		end
 	end
 	
@@ -478,6 +540,9 @@ in
 				end
 			[] nil then %No mine has exploded
 				null#MinesAccumulator
+			else %something went wrong
+				{ERR 'MinesPlaced has an invalid format'#MinesPlaced}
+				null#MinesPlaced %because we have to return something
 			end
 		end
 	in
@@ -487,6 +552,9 @@ in
 			of Mine#RemainingMines then
 				Mine#stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:RemainingMines nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			end
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			null#WeaponsState %because we have to return something
 		end
 	end
 	
@@ -514,8 +582,18 @@ in
 						Message = sayDamageTaken(PlayerID DamageTaken CurrentLife)
 						UpdatedState = stateRandomAI(life:CurrentLife locationState:LocationState weaponsState:WeaponsState)
 					end
+				else %something went wrong
+					{ERR 'ComputeDamage returned a state with invalid format'#NewState}
+					%don't take damages
+					Message = null
+					UpdatedState = State
 				end
 			end
+		else %something went wrong
+			{ERR 'ComputeDamage returned something with an invalid syntax'}
+			%don't take damages
+			Message = null
+			UpdatedState = State
 		end
 		%return
 		Message#UpdatedState
@@ -536,6 +614,10 @@ in
 			else %Distance == 0 => 2 damages
 				2#stateRandomAI(life:Life-2 locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState)
 			end
+		else %something went wrong
+			{ERR 'PlayerState has an invalid format'#State}
+			%don't take damages (because we have to return something valid)
+			0#State
 		end
 	end
 	
@@ -553,7 +635,13 @@ in
 				pt(x:PlayerPosition.x y:({OS.rand} mod Input.nColumn)+1)
 			[] 1 then
 				pt(x:({OS.rand} mod Input.nRow)+1 y:PlayerPosition.y)
+			else %something went wrong
+				{ERR 'Randomized out-of-bounds'}
+				pt(x:({OS.rand} mod Input.nRow)+1 y:PlayerPosition.y) %because we have to return something valid
 			end
+		else %something went wrong
+			{ERR 'PlayerState has an invalid format'#State}
+			pt(x:0 y:0) %because we have to return something with a valid format
 		end
 	end
 	
