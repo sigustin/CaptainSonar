@@ -16,7 +16,7 @@ define
 	PlayersPositions %List of all the players positions
 	PlayersAtSurface %List of lists of the surface state of each player (true/false)
 	PlayersAtSurfaceWaitingTurn %List of lists of number of turn the players as to wait to play again
-	NTurnMax = 4 %Maximal number of turn for the game (set high for normal game)
+	NTurnMax = 20 %Maximal number of turn for the game (set high for normal game)
 
 	%========== Functions and procedures =====================
 	CreatePlayers
@@ -136,6 +136,7 @@ in
 			{Send PlayersPorts.1 dive}
 			{Send PlayersPorts.1 move(ID Position Direction)}
 			{Browser.browse ID#Position#Direction}
+			{Send PortWindow movePlayer(ID Position)}
 		end
 		%End of tests
 	end
