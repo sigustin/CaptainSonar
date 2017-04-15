@@ -31,6 +31,8 @@ define
 	FireSonar
 	UpdateWeaponsState
 	
+	ExplodeMine
+	
 	PositionIsValid
 	
 	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 minesPlaced:nil nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLoading:0 nbSonars:0 sonarsLoading:0)
@@ -154,9 +156,13 @@ in
 					%return
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 				end
-			 %[] fireMine(ID KindItem) then
-			%	{Browser.browse 'coucou pas encore implémenté'}
-				%...
+			[] fireMine(?ID ?Mine) then
+				ID = PlayerID
+				case {ExplodeMine WeaponsState}
+				of MineExploding#NewWeaponsState then
+					Mine = MineExploding
+					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
+				end
 			%[] isSurface(ID Answer) then
 			%	{Browser.browse 'coucou pas encore implémenté'}
 				%...
@@ -417,6 +423,31 @@ in
 			[] drone(column:_) then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] sonar then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars-1 sonarsLoading:SonarsLoading)
 			else WeaponsState
+			end
+		end
+	end
+	
+	% @ExplodeMine : Checks if there is a mine in the list of mines placed (contained in @WeaponsState)
+	%                Chooses if one of those mine should explode and which one (randomly)
+	%                Returns the mine exploding and the new weapons' state (with the new list of mines placed)
+	fun {ExplodeMine WeaponsState}
+		fun {Loop MinesPlaced MinesAccumulator}
+			case MinesPlaced
+			of Mine|Remainder then
+				%Choose to explode this mine (one-in-two chances)
+				if {OS.rand} mod 2 then Mine#{Append MinesAccumulator Remainder}
+				else {Loop Remainder {Append MinesAccumulator Mine}}
+				end
+			[] nil then %No mine has exploded
+				null#MinesAccumulator
+			end
+		end
+	in
+		case WeaponsState
+		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
+			case {Loop MinesPlaced nil}
+			of Mine#RemainingMines then
+				Mine#stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:RemainingMines nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			end
 		end
 	end
