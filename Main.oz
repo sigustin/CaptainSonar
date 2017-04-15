@@ -128,6 +128,16 @@ in
 		%	end
 		%end
 		{Browser.browse 'OneTurn will be implemented in a short future'}
+		
+		%Tests of the messages
+		local
+			ID Position Direction
+		in
+			{Send PlayersPorts.1 dive}
+			{Send PlayersPorts.1 move(ID Position Direction)}
+			{Browser.browse ID#Position#Direction}
+		end
+		%End of tests
 	end
 
 	% @TurnByTurn : run the game in turn by turn mode
@@ -137,8 +147,7 @@ in
 			%TODO check if all dead
 
 			%display information
-		   {Browser.browse 'Turn number : '}
-		   {Browser.browse NTurn}
+		   {Browser.browse 'Turn number : '#NTurn}
 
 		   %Simulate One Turn
 		   {OneTurn PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn}

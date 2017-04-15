@@ -21,6 +21,7 @@ define
 	
 	InitPosition
 	Move
+	RandomStep
 	SquareNotVisited
 	ChooseRandomDirection
 	
@@ -131,7 +132,8 @@ in
 					%return
 					ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) weaponsState:WeaponsState)
 				else %something went wrong
-					{ERR 'LocationState has an invalid format'#LocationState}
+					{Browser.browse 'test'}
+					{ERR 'Move returned something with an invalid format'}
 					%return the same state as before
 					ReturnedState = State
 				end
@@ -327,15 +329,36 @@ in
 				end
 			%--------- Player is underwater => move to another position ---------------
 			else %Direction \= surface => CanDive = false
-				NewPosition = pt(x:Position.x+({OS.rand} mod 2) y:Position.y+({OS.rand} mod 2))
+				NewPosition
+				Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
+				DirectionTravelled %the direction towards which this player went
 			in
+				%Choose which axis to follow
+				if {OS.rand} mod 2 == 0 then % X-axis (vertically)
+					NewPosition = pt(x:Position.x+Movement y:Position.y)
+					if Movement == 1 then DirectionTravelled = south
+					else DirectionTravelled = north
+					end
+				else % Y-axis (horizontally)
+					NewPosition = pt(x:Position.x y:Position.y+Movement)
+					if Movement == 1 then DirectionTravelled = east
+					else DirectionTravelled = west
+					end
+				end
 				if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition SquaresVisited} then
 					%return
-					stateLocation(pos:NewPosition dir:Direction visited:NewPosition|SquaresVisited)
+					stateLocation(pos:NewPosition dir:DirectionTravelled canDive:false visited:NewPosition|SquaresVisited)
 				else {Move LocationState} %Choose another new position
 				end
 			end
 		else null
+		end
+	end
+	
+	%@RandomStep : returns either 1 or -1 (one-in-two chance)
+	fun {RandomStep}
+		if ({OS.rand} mod 2) == 0 then 1
+		else ~1
 		end
 	end
 	
