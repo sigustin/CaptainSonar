@@ -74,7 +74,6 @@ in
 	% @TurnByTurn : run the game in turn by turn mode
 	proc {TurnByTurn}
 	   {Browser.browse 'turn by turn'}
-	   %TODO	
 	end
 
 	% @Simultaneous : run the game in simultaneous mode
