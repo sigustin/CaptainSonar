@@ -117,8 +117,7 @@ in
 					ID = PlayerID
 					Position = PlayerPosition
 				else skip %something went wrong
-					ID = null
-					Position = invalid
+					{ERR 'LocationState has an invalid format'#LocationState}
 				end
 				%return
 				ReturnedState = State
