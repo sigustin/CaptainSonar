@@ -16,7 +16,7 @@ define
 	PlayersPositions %List of all the players positions
 	PlayersAtSurface %List of lists of the surface state of each player (true/false)
 	PlayersAtSurfaceWaitingTurn %List of lists of number of turn the players as to wait to play again
-	NTurnMax = 20 %Maximal number of turn for the game (set high for normal game)
+	NTurnMax = 200 %Maximal number of turn for the game (set high for normal game)
 	PlayersAlive % List of lists does the players are alive
 
 	%========== Functions and procedures =====================
@@ -31,6 +31,9 @@ define
 	OneTurn
 	TurnByTurn
 	Simultaneous
+	
+	%=========== TMP ====================
+	TMPMovePlayers
 
 	%=========== DEBUG ====================
 	proc {DEBUG}
@@ -73,7 +76,7 @@ in
 		   ({OS.rand} mod 256) )
 	end
 
-	% @SetUpAndShow : ask each Player its initial position (allow multiple boats at the same place? YES cf. pdf)
+	% @SetUpAndShow : ask each Player its initial position
 	%                 Then sends a message to the GUI to display their initial position
 	fun {SetUpAndShow PlayersPorts}
 	   case PlayersPorts
@@ -225,18 +228,24 @@ in
 		{Browser.browse 'OneTurn will be implemented in a short future'}
 
 		%Tests of the messages
-		local
-			ID Position Direction
-		in
-			{Send PlayersPorts.1 dive}
-			{Send PlayersPorts.1 move(ID Position Direction)}
+		{TMPMovePlayers PlayersPorts}
+		%End of tests
+	end
+	
+	proc {TMPMovePlayers PlayersPorts}
+		ID Position Direction
+	in
+		case PlayersPorts
+		of Player|Remainder then
+			{Send Player dive}
+			{Send Player move(ID Position Direction)}
 			if Direction == surface then
 				{Send PortWindow surface(ID)}
 			end
-			{Browser.browse ID#Position#Direction}
 			{Send PortWindow movePlayer(ID Position)}
+			{TMPMovePlayers Remainder}
+		[] nil then skip %end
 		end
-		%End of tests
 	end
 
 	% @NumberAlive : return the number of players alive

@@ -319,7 +319,7 @@ in
 					% If you dive, you cannot move at the same time (same turn) ?
 					
 					% Don't dive
-					if {OS.rand} mod 5 == 0 then
+					if {OS.rand} mod 10 == 0 then
 						%return
 						LocationState
 					% Dive
@@ -339,12 +339,10 @@ in
 			in
 				%Check if there is at least one position available around this player
 				if {NoSquareAvailable Position VisitedSquares} then %go to the surface
-					{Browse 'No square available'}
 					%return
 					stateLocation(pos:Position dir:surface canDive:false visited:nil)
 				%Choose if we should go to the surface or move
-				elseif {OS.rand} mod 15 == 0 then %surface
-					{Browse 'choose to go to surface'}
+				elseif {OS.rand} mod 20 == 0 then %surface
 					%return
 					stateLocation(pos:Position dir:surface canDive:false visited:nil)
 				else
