@@ -30,6 +30,14 @@ define
 	OneTurn
 	TurnByTurn
 	Simultaneous
+	
+	%=========== DEBUG ====================
+	proc {DEBUG}
+		{Browser.browse 'debug'}
+	end
+	proc {Browse Msg}
+		{Browser.browse Msg}
+	end
 in
 
 	%======== Functions and procedures definitions ============
@@ -108,7 +116,10 @@ in
 	end
 
 	% @OneTurn : make one turn in TurnByTurn mode
-	proc {OneTurn PlayersPort PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn NewPlayersAlive}
+	proc {OneTurn PlayersPort PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn ?NewPlayersAlive}
+		%Temporary : needed to turn more than once
+		NewPlayersAlive = {CreatePlayersAlive Input.nbPlayer}
+	
 		%case PlayersPort|PlayersAlive|PlayersAtSurface|PlayersAtSurfaceWaitingTurn
 		%of (PlayerPort|PlayersPorts2)|(LiveState|PlayersAlive2)|(PlayerAtSurface|PlayersAtSurface2)|(PlayerAtSurfaceWaitingTurn|PlayersAtSurface2) then NewPlayersAlive2 NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2 in
 		%	if LiveState then
@@ -226,19 +237,18 @@ in
 
 	% @TurnByTurn : run the game in turn by turn mode
 	proc {TurnByTurn NTurn PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive}
+		%display information
+	   {Browser.browse 'Turn number : '#NTurn#'out of'#NTurnMax}
 		%if NTurnMax is reached stop
 		if NTurn<NTurnMax then
 			NumAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn NewPlayersAlive in
-
+			
 			NumAlive = {NumberAlive PlayersAlive.1 0}
 			if NumAlive==0 then
-				{Browser.browse 'PLayera are all dead'}
+				{Browser.browse 'Players are all dead'}
 			elseif NumAlive==1 then
-				{Browser.browse 'one player alive we have a winner!!!'}
+				{Browser.browse 'One player left, we have a winner!!!'}
 			else
-				%display information
-			   {Browser.browse 'Turn number : '#NTurn}
-
 			   %Simulate One Turn
 			   {OneTurn PlayersPorts PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 PlayersAlive.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn NewPlayersAlive}
 
@@ -251,9 +261,9 @@ in
 			   {Delay 1000}
 
 			   % next turn
-		   		{TurnByTurn NTurn+1 PlayersAtSurface.2 PlayersAtSurfaceWaitingTurn.2 PlayersAlive.2}
-	   		end
-   		end
+		   	{TurnByTurn NTurn+1 PlayersAtSurface.2 PlayersAtSurfaceWaitingTurn.2 PlayersAlive.2}
+	   	end
+   	end
 	end
 
 	% @Simultaneous : run the game in simultaneous mode
@@ -264,8 +274,6 @@ in
 
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	%=================== Execution ===========================
-
-	{Browser.browse 'open the browser'}
 	%========= Create the GUI port and run its interface =============
 	PortWindow = {GUI.portWindow}
 	{Send PortWindow buildWindow}
@@ -288,7 +296,6 @@ in
 	%============== Run the game ==================
 	if Input.isTurnByTurn then
 		%--------- Turn by turn game ----------------
-		{Browser.browse 'coucou'}
 		{TurnByTurn 0 PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive}
 	else
 		%--------- Simultaneous game ----------------

@@ -14,6 +14,9 @@ define
 	proc {ERR Msg}
 		{Browser.browse 'There was a problem in Player000RandomAI'#Msg}
 	end
+	proc {Browse Msg}
+		{Browser.browse 'Player000RandomAI'#Msg}
+	end
 
 	StartPlayer
 	TreatStream
@@ -24,6 +27,7 @@ define
 	RandomStep
 	SquareNotVisited
 	ChooseRandomDirection
+	NoSquareAvailable
 	
 	LoadRandomWeapon
 	NewWeaponAvailable
@@ -57,7 +61,7 @@ in
 	% @stateLocation(pos:Position dir:Direction canDive:CanDive visited:VisitedSquares)
 	%     @CanDive is a boolean saying if the player has been granted the permission to dive
 	%              we consider that this boolean == false when the player is underwater
-	%     @SquaresVisited is a list of all the positions visited since the last surface phase
+	%     @VisitedSquares is a list of all the positions visited since the last surface phase
 	%                     Those cannot be visited again on the same diving phase
 	%                    => Main should NOT allow a player to dive while it's underwater
 	% @stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
@@ -307,7 +311,7 @@ in
 	%         (we keep track of the visited squares with @SquareVisited)
 	fun {Move LocationState}
 		case LocationState
-		of stateLocation(pos:Position dir:Direction canDive:CanDive visited:SquaresVisited) then
+		of stateLocation(pos:Position dir:Direction canDive:CanDive visited:VisitedSquares) then
 			%-------- Player is at the surface => choose to dive if you're allowed to ----------
 			if Direction == surface then
 				if CanDive then
@@ -328,14 +332,19 @@ in
 					stateLocation(pos:Position dir:Direction canDive:CanDive visited:nil)
 				end
 			%--------- Player is underwater => move to another position ---------------
-			%BUG if no place around is available (already visited)
 			else %Direction \= surface => CanDive = false
 				NewPosition
 				Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
 				DirectionTravelled %the direction towards which this player went
 			in
+				%Check if there is at least one position available around this player
+				if {NoSquareAvailable Position VisitedSquares} then %go to the surface
+					{Browse 'No square available'}
+					%return
+					stateLocation(pos:Position dir:surface canDive:false visited:nil)
 				%Choose if we should go to the surface or move
-				if {OS.rand} mod 10 == 0 then %surface
+				elseif {OS.rand} mod 15 == 0 then %surface
+					{Browse 'choose to go to surface'}
 					%return
 					stateLocation(pos:Position dir:surface canDive:false visited:nil)
 				else
@@ -351,9 +360,9 @@ in
 						else DirectionTravelled = west
 						end
 					end
-					if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition SquaresVisited} then
+					if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition VisitedSquares} then
 						%return
-						stateLocation(pos:NewPosition dir:DirectionTravelled canDive:false visited:NewPosition|SquaresVisited)
+						stateLocation(pos:NewPosition dir:DirectionTravelled canDive:false visited:NewPosition|VisitedSquares)
 					else {Move LocationState} %Choose another new position
 					end
 				end
@@ -370,15 +379,15 @@ in
 	end
 	
 	% @SquareNotVisited : returns true if the squares hasn't been visited in this diving phase
-	fun {SquareNotVisited Position SquaresVisited}
-		case SquaresVisited
+	fun {SquareNotVisited Position VisitedSquares}
+		case VisitedSquares
 		of nil then true
 		[] Square|Remainder then
 			if Position == Square then false
 			else {SquareNotVisited Position Remainder}
 			end
 		else %something went wrong
-			{ERR 'SquaresVisited has an invalid format'#SquaresVisited}
+			{ERR 'VisitedSquares has an invalid format'#VisitedSquares}
 			true %Prevents looping forever
 		end
 	end
@@ -393,6 +402,27 @@ in
 		else %something went wrong
 			{ERR 'Randomized out-of-bounds'}
 			north %because we have to return something
+		end
+	end
+	
+	% @NoSquareAvailable : checks if there is at least one square around @PlayerPosition
+	%                      returns @true if no square is available, @false otherwise
+	fun {NoSquareAvailable PlayerPosition VisitedSquares}
+		PosNorth = pt(x:PlayerPosition.x-1 y:PlayerPosition.y)
+		PosSouth = pt(x:PlayerPosition.x+1 y:PlayerPosition.y)
+		PosEast = pt(x:PlayerPosition.x y:PlayerPosition.y+1)
+		PosWest = pt(x:PlayerPosition.x y:PlayerPosition.y-1)
+	in
+		if {PositionIsValid PosNorth} andthen {SquareNotVisited PosNorth VisitedSquares} then
+			false
+		elseif {PositionIsValid PosSouth} andthen {SquareNotVisited PosSouth VisitedSquares} then
+			false
+		elseif {PositionIsValid PosEast} andthen {SquareNotVisited PosEast VisitedSquares} then
+			false
+		elseif {PositionIsValid PosWest} andthen {SquareNotVisited PosWest VisitedSquares} then
+			false
+		else
+			true			
 		end
 	end
 	
