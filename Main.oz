@@ -16,7 +16,7 @@ define
 	PlayersPositions %List of all the players positions
 	PlayersAtSurface %List of lists of the surface state of each player (true/false)
 	PlayersAtSurfaceWaitingTurn %List of lists of number of turn the players as to wait to play again
-	NTurnMax = 200 %Maximal number of turn for the game (set high for normal game)
+	NTurnMax = 30 %Maximal number of turn for the game (set high for normal game)
 	PlayersAlive % List of lists does the players are alive
 
 	%========== Functions and procedures =====================
@@ -33,7 +33,7 @@ define
 	Simultaneous
 	
 	%=========== TMP ====================
-	TMPMovePlayers
+	TMPTestPlayers
 
 	%=========== DEBUG ====================
 	proc {DEBUG}
@@ -228,22 +228,31 @@ in
 		{Browser.browse 'OneTurn will be implemented in a short future'}
 
 		%Tests of the messages
-		{TMPMovePlayers PlayersPorts}
+		{TMPTestPlayers PlayersPorts}
 		%End of tests
 	end
 	
-	proc {TMPMovePlayers PlayersPorts}
-		ID Position Direction
-	in
+	proc {TMPTestPlayers PlayersPorts}
 		case PlayersPorts
 		of Player|Remainder then
 			{Send Player dive}
-			{Send Player move(ID Position Direction)}
-			if Direction == surface then
-				{Send PortWindow surface(ID)}
+			local
+				ID Position Direction
+			in
+				{Send Player move(ID Position Direction)}
+				if Direction == surface then
+					{Send PortWindow surface(ID)}
+				end
+				{Send PortWindow movePlayer(ID Position)}
 			end
-			{Send PortWindow movePlayer(ID Position)}
-			{TMPMovePlayers Remainder}
+			local
+				ID NewWeapon
+			in
+				{Send Player chargeItem(ID NewWeapon)}
+				%{Send Player print}
+			end
+			
+			{TMPTestPlayers Remainder}
 		[] nil then skip %end
 		end
 	end

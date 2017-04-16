@@ -283,6 +283,10 @@ in
 			[] sayDamageTaken(ID Damage LifeLeft) then
 				%Ignore
 				ReturnedState = State
+			%--------- DEBUG : print yourself -------------------------
+			[] print then
+				{Browse PlayerID#State}
+				ReturnedState = State
 			else %Unknown message => don't do anything
 				ReturnedState = State
 			end
