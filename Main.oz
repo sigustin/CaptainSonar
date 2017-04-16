@@ -27,10 +27,11 @@ define
 	CreatePlayersAtSurfaceWaitingTurn
 	CreatePlayersAlive
 	NumberAlive
+	BroadcastDirection
 	OneTurn
 	TurnByTurn
 	Simultaneous
-	
+
 	%=========== DEBUG ====================
 	proc {DEBUG}
 		{Browser.browse 'debug'}
@@ -115,12 +116,30 @@ in
 		end
 	end
 
+	% @BroadcastDirection : send to all players the Direction taken by player ID
+	proc {BroadcastDirection ID Direction}
+		for P in PlayersPorts do
+			if Direction==surface then
+				{Send P saySurface(ID)}
+			else
+				{Send P sayMove(ID Direction)}
+			end
+		end
+	end
+
 	% @OneTurn : make one turn in TurnByTurn mode
-	proc {OneTurn PlayersPort PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn ?NewPlayersAlive}
+	%			PlayersPorts ports of the players
+	%			PlayersAliveFull maintain a full list of the alive state of the players
+	%			PlayersAtSurface & PlayersAtSurfaceWaitingTurn players surface state
+	%			PlayersAlive alive state for the players that still have to play
+	%			NewPlayersAtSurface & NewPlayersAtSurface update the lists
+	%			NewPlayersAlive contruct newList of the players alive
+	%			The alive state will be handled differently in a short future
+	proc {OneTurn PlayersPorts PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn ?NewPlayersAlive}
 		%Temporary : needed to turn more than once
 		NewPlayersAlive = {CreatePlayersAlive Input.nbPlayer}
-	
-		%case PlayersPort|PlayersAlive|PlayersAtSurface|PlayersAtSurfaceWaitingTurn
+
+		%case PlayersPorts|PlayersAlive|PlayersAtSurface|PlayersAtSurfaceWaitingTurn
 		%of (PlayerPort|PlayersPorts2)|(LiveState|PlayersAlive2)|(PlayerAtSurface|PlayersAtSurface2)|(PlayerAtSurfaceWaitingTurn|PlayersAtSurface2) then NewPlayersAlive2 NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2 in
 		%	if LiveState then
 		%		%our player is alive
@@ -137,13 +156,12 @@ in
 %
 		%			%direction?
 		%			{Send PlayerPort move(ID Position Direction)}
+		%			{BroadcastDirection ID Direction}
 		%			if Direction==surface then
 		%				NewPlayersAtSurface = true|PlayersAtSurface2
 		%				NewPlayersAtSurfaceWaitingTurn = (Input.TurnSurface-1)|PlayersAtSurfaceWaitingTurn2
-		%				%TODO Broacast information
-		%				Send PortWindow surface(ID)}
+		%				{Send PortWindow surface(ID)}
 		%			else KindItem KindFire Mine in
-		%				%TODO broadcast to other players the direction
 		%				{Send PortWindow movePlayer(ID Position)}
 %
 		%				{Send PlayerPort chargeItem(ID KindItem)}
@@ -221,7 +239,7 @@ in
 		%End of tests
 	end
 
-	% @NumberAlive : check if All the players are dead
+	% @NumberAlive : return the number of players alive
 	fun {NumberAlive PlayersAlive Acc}
 		case PlayersAlive
 		of H|T then
@@ -242,7 +260,7 @@ in
 		%if NTurnMax is reached stop
 		if NTurn<NTurnMax then
 			NumAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn NewPlayersAlive in
-			
+
 			NumAlive = {NumberAlive PlayersAlive.1 0}
 			if NumAlive==0 then
 				{Browser.browse 'Players are all dead'}
