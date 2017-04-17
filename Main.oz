@@ -28,10 +28,18 @@ define
 	CreatePlayersAlive
 	NumberAlive
 	BroadcastDirection
+	BroadcastItemCharged
+	BroadcastKilled
+	Kill
+	BroadcastDamageTaken
+	MissileExplode
+	SonarActivated
+	DroneActivated
+	MineExploded
 	OneTurn
 	TurnByTurn
 	Simultaneous
-	
+
 	%=========== TMP ====================
 	TMPTestPlayers
 
@@ -130,6 +138,120 @@ in
 		end
 	end
 
+	% @BroadcastItemCharged : send to all players that KindItem has been charged by player ID
+	proc {BroadcastItemCharged ID KindItem}
+		for P in PlayersPorts do
+			if KindItem==mine then
+				{Send P sayMinePlaced(ID)}
+			else
+				{Send P sayCharge(ID KindItem)}
+			end
+		end
+	end
+
+	% @BroadcastKilled : announce the death of all the players in killed
+	proc {BroadcastKilled Killed}
+		case Killed
+		of ID|T then
+			for P in PlayersPorts do
+				{Send P sayDeath(ID)}
+			end
+			{BroadcastKilled T}
+		[] nil then
+			skip
+		end
+	end
+
+	% @Kill : change the AliveState to kill people with their ID in Killed
+	fun {Kill PlayersAlive Killed}
+		case PlayersAlive
+		of P|PlayersAlive2 then
+			case Killed
+			of K|Killed2 then
+				if P==K then
+					false|{Kill PlayersAlive2 Killed2}
+				else
+					P|{Kill PlayersAlive2 Killed}
+				end
+			[] nil then
+				nil
+			end
+		[] nil then
+			nil
+		end
+	end
+
+	% @BroadcastDamageTaken : broadcast the damge taken information
+	proc {BroadcastDamageTaken ID Damage LifeLeft}
+		for P in PlayersPorts do
+			{Send P sayDamageTaken(ID Damage LifeLeft)}
+		end
+	end
+
+	% @MissileExplode : A missile has exploded broadcast the information broadcast the damage taken, return the Killed
+	fun {MissileExplode ID Pos}
+		fun {PlayerByPlayer PlayersPorts}
+			case PlayersPorts
+			of P|T then Message in
+				{Send P sayMissileExplode(ID Pos Message)}
+				case Message
+				of sayDeath(IDDeath) then
+					IDDeath|{PlayerByPlayer T}
+				[] sayDamageTaken(IDDmg Damage LifeLeft) then
+					{BroadcastDamageTaken IDDmg Damage LifeLeft}
+					{PlayerByPlayer T}
+				end
+			[] nil then
+				nil
+			end
+		end
+	in
+		{PlayerByPlayer PlayersPorts}
+	end
+
+	% @SonarActivated : A sonar has been Activated broadcast it and return information to ID, return nil
+	fun {SonarActivated ID}
+		PID = {Nth PlayersPorts ID}%TODO check 0 or 1
+	in
+		for P in PlayersPorts do IDRcv Answer in
+			{Send P sayPassingSonar(IDRcv Answer)}
+			{Send PID sayAnswerSonar(IDRcv Answer)}
+		end
+		nil
+	end
+
+	% @DroneActivated : A Drone has been Activated broadcast it and return information to Id, rutun nil
+	fun {DroneActivated ID Drone}
+		PID = {Nth PlayersPorts ID}%TODO check 0 or 1
+	in
+		for P in PlayersPorts do IDRcv Answer in
+			{Send P sayPassingDrone(Drone ID Answer)}
+			{Send PID sayAnswerDrone(Drone ID Answer)}
+		end
+		nil
+	end
+
+	% @MineExploded : A Mine has been exploded broacast it and broadcast the damage taken, return the Killed
+	fun {MineExploded ID Pos}
+		fun {PlayerByPlayer PlayersPorts}
+			case PlayersPorts
+			of P|T then Message in
+				{Send P sayMineExplode(ID Pos Message)}
+				case Message
+				of sayDeath(IDDeath) then
+					IDDeath|{PlayerByPlayer T}
+				[] sayDamageTaken(IDDmg Damage LifeLeft) then
+					{BroadcastDamageTaken IDDmg Damage LifeLeft}
+					{PlayerByPlayer T}
+				end
+			[] nil then
+				nil
+			end
+		end
+	in
+		{PlayerByPlayer PlayersPorts}
+	end
+
 	% @OneTurn : make one turn in TurnByTurn mode
 	%			PlayersPorts ports of the players
 	%			PlayersAliveFull maintain a full list of the alive state of the players
@@ -137,13 +259,13 @@ in
 	%			PlayersAlive alive state for the players that still have to play
 	%			NewPlayersAtSurface & NewPlayersAtSurface update the lists
 	%			NewPlayersAlive contruct newList of the players alive
-	%			The alive state will be handled differently in a short future
-	proc {OneTurn PlayersPorts PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn ?NewPlayersAlive}
+	%		TODO if a player is dead in the round he cannot play
+	proc {OneTurn PlayersPorts PlayersAliveFull PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn ?NewPlayersAlive}
 		%Temporary : needed to turn more than once
 		NewPlayersAlive = {CreatePlayersAlive Input.nbPlayer}
 
 		%case PlayersPorts|PlayersAlive|PlayersAtSurface|PlayersAtSurfaceWaitingTurn
-		%of (PlayerPort|PlayersPorts2)|(LiveState|PlayersAlive2)|(PlayerAtSurface|PlayersAtSurface2)|(PlayerAtSurfaceWaitingTurn|PlayersAtSurface2) then NewPlayersAlive2 NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2 in
+		%of (PlayerPort|PlayersPorts2)|(LiveState|PlayersAlive2)|(PlayerAtSurface|PlayersAtSurface2)|(PlayerAtSurfaceWaitingTurn|PlayersAtSurface2) then NewPlayersAlive2 NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2 NewPlayersAliveFull1 NewPlayersAliveFull2 in
 		%	if LiveState then
 		%		%our player is alive
 		%		if PlayerAtSurface and PlayerAtSurfaceWaitingTurn>0 then
@@ -151,6 +273,7 @@ in
 		%			NewPlayersAlive = true|NewPlayersAlive2
 		%			NewPlayersAtSurface = true|NewPlayersAtSurface2
 		%			NewPlayersAtSurfaceWaitingTurn = (PlayerAtSurfaceWaitingTurn-1)|NewPlayersAtSurface2
+		%			NewPlayersAliveFull2 = PlayersAliveFull
 		%		else ID Position Direction then
 		%			%can move again
 		%			if PlayerAtSurface then
@@ -169,16 +292,35 @@ in
 %
 		%				{Send PlayerPort chargeItem(ID KindItem)}
 		%				if ~(KindItem==null) then
-		%					%TODO broadcast
+		%					{BroacastItemCharged ID KindItem}
 		%				end
 %
 		%				{Send PlayerPort fireItem(ID KindFire)}
-		%				if ~(KindFire==null) then
+		%				if ~(KindFire==null) then Killed in
 		%					%broadcast and receive informations, change alive list
+		%					case KindFire
+		%					of missile(Pos) then
+		%						Killed = {MissileExplode ID Pos}
+		%					[] sonar then%TODO check if match
+		%						Killed = {SonarActivated ID KindFire}
+		%					[] drone then%TODO check if match
+		%						Killed = {DroneActivated ID KindFire}
+		%					end
+		%					{BroadcastKilled Killed}
+		%					NewPlayersAliveFull1 = {Kill PlayersAliveFull Killed}
+		%				else
+		%					NewPlayersAliveFull1 = PlayersAliveFull
+		%				end
+%
 		%
 		%				{Send PlayerPort fireMine(ID Mine)}
-		%				if ~(Mine==null) then
+		%				if ~(Mine==null) then Killed in
 		%					%broadcast and receive informations, change alive list
+		%					{MineExploded ID Mine}
+		%					{BroadcastKilled Killed}
+		%					NewPlayersAliveFull2 = {Kill PlayersAliveFull1 Killed}
+		%				else
+		%					NewPlayersAliveFull2 = NewPlayersAliveFull1
 		%				end
 		%			end
 		%		end
@@ -187,9 +329,10 @@ in
 		%		NewPlayersAlive = false|NewPlayersAlive2
 		%		NewPlayersAtSurface = false|NewPlayersAtSurface2
 		%		NewPlayersAtSurfaceWaitingTurn = 0|NewPlayersAtSurface2
+		%		NewPlayersAliveFull2 = PlayersAliveFull
 		%	end
 		%	%next player
-		%	{OneTurn PlayersAtSurface2 PlayersAtSurfaceWaitingTurn2 PlayersAlive2 NewPlayersAtSurfaceWaitingTurn2 NewPlayersAtSurface2 NewPlayersAlive2}
+		%	{OneTurn PlayersPorts NewPlayersAliveFull2 PlayersAtSurface2 PlayersAtSurfaceWaitingTurn2 PlayersAlive2 NewPlayersAtSurfaceWaitingTurn2 NewPlayersAtSurface2 NewPlayersAlive2}
 		%[] nil|nil|nil then
 		%	NewPlayersAtSurface = nil
 		%	NewPlayersAtSurfaceWaitingTurn = nil
@@ -231,7 +374,7 @@ in
 		{TMPTestPlayers PlayersPorts}
 		%End of tests
 	end
-	
+
 	proc {TMPTestPlayers PlayersPorts}
 		case PlayersPorts
 		of Player|Remainder then
@@ -251,7 +394,7 @@ in
 				{Send Player chargeItem(ID NewWeapon)}
 				%{Send Player print}
 			end
-			
+
 			{TMPTestPlayers Remainder}
 		[] nil then skip %end
 		end
@@ -286,7 +429,7 @@ in
 				{Browser.browse 'One player left, we have a winner!!!'}
 			else
 			   %Simulate One Turn
-			   {OneTurn PlayersPorts PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 PlayersAlive.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn NewPlayersAlive}
+			   {OneTurn PlayersPorts PlayersAlive PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 PlayersAlive.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn NewPlayersAlive}
 
 			   %update state
 			   PlayersAtSurface.2 = NewPlayersAtSurface|_
