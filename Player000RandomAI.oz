@@ -58,9 +58,7 @@ in
 	% @stateRandomAI(life:Life locationState:LocationState weaponsState:WeaponsState)
 	%     @LocationState is a record of type @stateLocation (defined hereafter)
 	%     @WeaponsState is a record of type @stateWeapons (defined hereafter)
-	% @stateLocation(pos:Position dir:Direction canDive:CanDive visited:VisitedSquares)
-	%     @CanDive is a boolean saying if the player has been granted the permission to dive
-	%              we consider that this boolean == false when the player is underwater
+	% @stateLocation(pos:Position dir:Direction visited:VisitedSquares)
 	%     @VisitedSquares is a list of all the positions visited since the last surface phase
 	%                     Those cannot be visited again on the same diving phase
 	%                    => Main should NOT allow a player to dive while it's underwater
@@ -87,7 +85,7 @@ in
 	in		
 		{NewPort Stream Port}
 		thread
-			{TreatStream Stream ID stateRandomAI(life:Input.maxDamage locationState:stateLocation(pos:{InitPosition} dir:surface canDive:false visited:nil) weaponsState:DefaultWeaponsState)}
+			{TreatStream Stream ID stateRandomAI(life:Input.maxDamage locationState:stateLocation(pos:{InitPosition} dir:surface visited:nil) weaponsState:DefaultWeaponsState)}
 		end
 		Port
 	end
@@ -122,7 +120,7 @@ in
 					ReturnedState = State
 				else
 					case LocationState
-					of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+					of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 						ID = PlayerID
 						Position = PlayerPosition
 					else skip %something went wrong
@@ -138,12 +136,12 @@ in
 					ReturnedState = State
 				else
 					case {Move LocationState}
-					of stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) then
+					of stateLocation(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) then
 						ID = PlayerID
 						Position = NewPosition
 						Direction = NewDirection
 						%return
-						ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) weaponsState:WeaponsState)
+						ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) weaponsState:WeaponsState)
 					else %something went wrong
 						{Browser.browse 'test'}
 						{ERR 'Move returned something with an invalid format'}
@@ -152,14 +150,18 @@ in
 					end
 				end
 			%---------- Provide the permission to dive -------------
-			% This should be called only if PlayerDirection == surface
 			[] dive then
 				if PlayerLife =< 0 then
 					ReturnedState = State
 				else
 					case LocationState
-					of stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:_ visited:VisitedSquares) then
-						ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:true visited:VisitedSquares) weaponsState:WeaponsState)
+					of stateLocation(pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares) then
+						if PlayerDirection \= surface then
+							% Ignore
+							ReturnedState = State
+						else
+							ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:{ChooseRandomDirection} visited:nil) weaponsState:WeaponsState)
+						end
 					else %something went wrong
 						{ERR 'LocationState has an invalid format'#LocationState}
 						ReturnedState = State
@@ -196,7 +198,7 @@ in
 					if FiredWeaponType \= null then
 						% Fire a weapon of type @FiredWeaponType
 						case LocationState
-						of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+						of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
 						else %something went wrong
 							{ERR 'LocationState has an invalid format'#LocationState}
@@ -229,7 +231,7 @@ in
 				else
 					ID = PlayerID
 					case LocationState
-					of stateLocation(pos:_ dir:Direction canDive:_ visited:_) then
+					of stateLocation(pos:_ dir:Direction visited:_) then
 						if Direction == surface then Answer = true
 						else Answer = false
 						end
@@ -292,7 +294,7 @@ in
 				else
 					ID = PlayerID
 					case LocationState
-					of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+					of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 						case Drone
 						of drone(row:Row) then
 							if PlayerPosition.y == Row then Answer = true
@@ -346,7 +348,7 @@ in
 			end
 		else %something went wrong => State not in the right format => we reset the state
 			{ERR 'State has an invalid format'#State}
-			ReturnedState = stateRandomAI(life:Input.maxDamage locationState:stateLocation(pos:{InitPosition} dir:surface canDive:false visited:nil) weaponsState:DefaultWeaponsState)
+			ReturnedState = stateRandomAI(life:Input.maxDamage locationState:stateLocation(pos:{InitPosition} dir:surface visited:nil) weaponsState:DefaultWeaponsState)
 		end
 		ReturnedState
 	end
@@ -369,28 +371,14 @@ in
 	%         (we keep track of the visited squares with @SquareVisited)
 	fun {Move LocationState}
 		case LocationState
-		of stateLocation(pos:Position dir:Direction canDive:CanDive visited:VisitedSquares) then
+		of stateLocation(pos:Position dir:Direction visited:VisitedSquares) then
 			%-------- Player is at the surface => choose to dive if you're allowed to ----------
 			if Direction == surface then
-				if CanDive then
-					% One-in-five chance of diving if you have the permission to dive
-					% If you dive, you cannot move at the same time (same turn) ?
-					
-					% Don't dive
-					if {OS.rand} mod 10 == 0 then
-						%return
-						LocationState
-					% Dive
-					else
-						%return
-						stateLocation(pos:Position dir:{ChooseRandomDirection} canDive:false visited:Position|nil)
-					end
-				else
-					%return
-					stateLocation(pos:Position dir:Direction canDive:CanDive visited:nil)
-				end
+				% You will dive when you get the message @dive
+				%return
+				LocationState
 			%--------- Player is underwater => move to another position ---------------
-			else %Direction \= surface => CanDive = false
+			else %Direction \= surface
 				NewPosition
 				Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
 				DirectionTravelled %the direction towards which this player went
@@ -398,11 +386,11 @@ in
 				%Check if there is at least one position available around this player
 				if {NoSquareAvailable Position VisitedSquares} then %go to the surface
 					%return
-					stateLocation(pos:Position dir:surface canDive:false visited:nil)
+					stateLocation(pos:Position dir:surface visited:nil)
 				%Choose if we should go to the surface or move
 				elseif {OS.rand} mod 20 == 0 then %surface
 					%return
-					stateLocation(pos:Position dir:surface canDive:false visited:nil)
+					stateLocation(pos:Position dir:surface visited:nil)
 				else
 					%Choose which axis to follow
 					if {OS.rand} mod 2 == 0 then % X-axis (vertically)
@@ -418,7 +406,7 @@ in
 					end
 					if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition VisitedSquares} then
 						%return
-						stateLocation(pos:NewPosition dir:DirectionTravelled canDive:false visited:NewPosition|VisitedSquares)
+						stateLocation(pos:NewPosition dir:DirectionTravelled visited:NewPosition|VisitedSquares)
 					else {Move LocationState} %Choose another new position
 					end
 				end
@@ -554,7 +542,7 @@ in
 	%               Call one of the following : @PlaceMine, @FireMissile, @FireDrone or @FireSonar
 	fun {FireWeapon WeaponType PlayerState}
 		case PlayerState
-		of stateRandomAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState) then
+		of stateRandomAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState) then
 			case WeaponType
 			of mine then
 				NewMine = {PlaceMine PlayerPosition}
@@ -719,15 +707,15 @@ in
 	%                      Returns the number of damages taken and the new state (with the life left)
 	fun {ComputeDamage ExplosionPosition State}
 		case State
-		of stateRandomAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState) then
+		of stateRandomAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState) then
 			Distance = {Abs (PlayerPosition.x-ExplosionPosition.x)}+{Abs (PlayerPosition.y-ExplosionPosition.y)}
 		in
 			if Distance >= 2 then %Too far => no damage
 				0#State
 			elseif Distance == 1 then %1 damage
-				1#stateRandomAI(life:Life-1 locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState)
+				1#stateRandomAI(life:Life-1 locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState)
 			else %Distance == 0 => 2 damages
-				2#stateRandomAI(life:Life-2 locationState:stateLocation(pos:PlayerPosition dir:Direction canDive:CanDive visited:Visited) weaponsState:WeaponsState)
+				2#stateRandomAI(life:Life-2 locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState)
 			end
 		else %something went wrong
 			{ERR 'PlayerState has an invalid format'#State}
@@ -743,7 +731,7 @@ in
 	%                       and the other wrong (randomly chosen)
 	fun {FakeCoordForSonars State}
 		case State
-		of stateRandomAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) weaponsState:_) then
+		of stateRandomAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ visited:_) weaponsState:_) then
 			%Choose which coordinate to fake
 			case {OS.rand} mod 2
 			of 0 then

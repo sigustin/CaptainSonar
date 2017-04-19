@@ -382,6 +382,7 @@ in
 			local
 				ID Position Direction
 			in
+				{Send Player dive}
 				{Send Player move(ID Position Direction)}
 				if Direction == surface then
 					{Send PortWindow surface(ID)}
