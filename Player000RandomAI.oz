@@ -117,93 +117,127 @@ in
 			case Msg
 			%---------- Initialize position -------------
 			of initPosition(?ID ?Position) then
-				case LocationState
-				of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
-					ID = PlayerID
-					Position = PlayerPosition
-				else skip %something went wrong
-					{ERR 'LocationState has an invalid format'#LocationState}
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					case LocationState
+					of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+						ID = PlayerID
+						Position = PlayerPosition
+					else skip %something went wrong
+						{ERR 'LocationState has an invalid format'#LocationState}
+					end
+					%return
+					ReturnedState = State
 				end
-				%return
-				ReturnedState = State
 			%---------- Move player -------------------
 			[] move(?ID ?Position ?Direction) then
-				case {Move LocationState}
-				of stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) then
-					ID = PlayerID
-					Position = NewPosition
-					Direction = NewDirection
-					%return
-					ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) weaponsState:WeaponsState)
-				else %something went wrong
-					{Browser.browse 'test'}
-					{ERR 'Move returned something with an invalid format'}
-					%return the same state as before
+				if PlayerLife =< 0 then
+					ID = null
 					ReturnedState = State
+				else
+					case {Move LocationState}
+					of stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) then
+						ID = PlayerID
+						Position = NewPosition
+						Direction = NewDirection
+						%return
+						ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection canDive:NewCanDive visited:NewVisitedSquares) weaponsState:WeaponsState)
+					else %something went wrong
+						{Browser.browse 'test'}
+						{ERR 'Move returned something with an invalid format'}
+						%return the same state as before
+						ReturnedState = State
+					end
 				end
 			%---------- Provide the permission to dive -------------
 			% This should be called only if PlayerDirection == surface
 			[] dive then
-				case LocationState
-				of stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:_ visited:VisitedSquares) then
-					ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:true visited:VisitedSquares) weaponsState:WeaponsState)
-				else %something went wrong
-					{ERR 'LocationState has an invalid format'#LocationState}
+				if PlayerLife =< 0 then
 					ReturnedState = State
+				else
+					case LocationState
+					of stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:_ visited:VisitedSquares) then
+						ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:PlayerDirection canDive:true visited:VisitedSquares) weaponsState:WeaponsState)
+					else %something went wrong
+						{ERR 'LocationState has an invalid format'#LocationState}
+						ReturnedState = State
+					end
 				end
 			%------- Increase the loading charge of an item ------------
 			[] chargeItem(?ID ?KindItem) then
-				NewWeaponsState
-				SimplifiedWeaponsState
-			in
-				ID = PlayerID
-				% Load one of the weapons's loading charge
-				NewWeaponsState = {LoadRandomWeapon WeaponsState}
-				% Check if a new weapon can be created
-				KindItem#SimplifiedWeaponsState = {NewWeaponAvailable NewWeaponsState}
-				%return
-				ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:SimplifiedWeaponsState)
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					NewWeaponsState
+					SimplifiedWeaponsState
+				in
+					ID = PlayerID
+					% Load one of the weapons's loading charge
+					NewWeaponsState = {LoadRandomWeapon WeaponsState}
+					% Check if a new weapon can be created
+					KindItem#SimplifiedWeaponsState = {NewWeaponAvailable NewWeaponsState}
+					%return
+					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:SimplifiedWeaponsState)
+				end
 			%------- Fire a weapon -------------
 			% If a weapon is available, randomly choose to use one
 			[] fireItem(?ID ?KindFire) then
-				FiredWeaponType = {ChooseWhichToFire WeaponsState}
-				NewWeaponsState
-			in
-				ID = PlayerID
-				if FiredWeaponType \= null then
-					% Fire a weapon of type @FiredWeaponType
-					case LocationState
-					of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
-						KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
-					else %something went wrong
-						{ERR 'LocationState has an invalid format'#LocationState}
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					FiredWeaponType = {ChooseWhichToFire WeaponsState}
+					NewWeaponsState
+				in
+					ID = PlayerID
+					if FiredWeaponType \= null then
+						% Fire a weapon of type @FiredWeaponType
+						case LocationState
+						of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
+						else %something went wrong
+							{ERR 'LocationState has an invalid format'#LocationState}
+						end
+						%return
+						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 					end
-					%return
-					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 				end
 			%-------- Choose to explode a placed mine -----------------
 			[] fireMine(?ID ?Mine) then
-				ID = PlayerID
-				case {ExplodeMine WeaponsState}
-				of MineExploding#NewWeaponsState then
-					Mine = MineExploding
-					ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
-				else %something went wrong
-					{ERR 'ExplodeMine did not return a record correctly formatted'}
+				if PlayerLife =< 0 then
+					ID = null
 					ReturnedState = State
+				else
+					ID = PlayerID
+					case {ExplodeMine WeaponsState}
+					of MineExploding#NewWeaponsState then
+						Mine = MineExploding
+						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
+					else %something went wrong
+						{ERR 'ExplodeMine did not return a record correctly formatted'}
+						ReturnedState = State
+					end
 				end
 			%-------- Is this player at the surface? ------------------
 			[] isSurface(?ID ?Answer) then
-				ID = PlayerID
-				case LocationState
-				of stateLocation(pos:_ dir:Direction canDive:_ visited:_) then
-					if Direction == surface then Answer = true
-					else Answer = false
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					ID = PlayerID
+					case LocationState
+					of stateLocation(pos:_ dir:Direction canDive:_ visited:_) then
+						if Direction == surface then Answer = true
+						else Answer = false
+						end
+					else %something went wrong
+						{ERR 'LocationState has an invalid format'#LocationState}
 					end
-				else %something went wrong
-					{ERR 'LocationState has an invalid format'#LocationState}
+					ReturnedState = State
 				end
-				ReturnedState = State
 			%----- Flash info : player @ID has moved in the direction @Direction -----------
 			[] sayMove(ID Direction) then
 				%Ignore
@@ -222,55 +256,75 @@ in
 				ReturnedState = State
 			%------------- A missile exploded (is this player damaged?) -----------------
 			[] sayMissileExplode(ID Position ?Message) then
-				case {ExplosionHappened Position PlayerID State}
-				of Msg#NewState then
-					Message = Msg
-					ReturnedState = NewState
-				else %something went wrong
-					{ERR 'ExplosionHappened did not return a record correctly formatted'}
+				if PlayerLife =< 0 then
+					Msg = sayDeath(PlayerID)
 					ReturnedState = State
+				else
+					case {ExplosionHappened Position PlayerID State}
+					of Msg#NewState then
+						Message = Msg
+						ReturnedState = NewState
+					else %something went wrong
+						{ERR 'ExplosionHappened did not return a record correctly formatted'}
+						ReturnedState = State
+					end
 				end
 			%--------- A mine exploded (is this player damaged?) -----------------
 			[] sayMineExplode(ID Position ?Message) then
-				case {ExplosionHappened Position PlayerID State}
-				of Msg#NewState then
-					Message = Msg
-					ReturnedState = NewState
-				else %something went wrong
-					{ERR 'ExplosionHappened did not return a record correctly formatted'}
+				if PlayerLife =< 0 then
+					Msg = sayDeath(PlayerID)
 					ReturnedState = State
+				else
+					case {ExplosionHappened Position PlayerID State}
+					of Msg#NewState then
+						Message = Msg
+						ReturnedState = NewState
+					else %something went wrong
+						{ERR 'ExplosionHappened did not return a record correctly formatted'}
+						ReturnedState = State
+					end
 				end
 			%------- A drone is asking if this player is on a certain row/column ---------
 			[] sayPassingDrone(Drone ?ID ?Answer) then
-				ID = PlayerID
-				case LocationState
-				of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
-					case Drone
-					of drone(row:Row) then
-						if PlayerPosition.y == Row then Answer = true
-						else Answer = false
-						end
-					[] drone(column:Column) then
-						if PlayerPosition.x == Column then Answer = true
-						else Answer = false
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					ID = PlayerID
+					case LocationState
+					of stateLocation(pos:PlayerPosition dir:_ canDive:_ visited:_) then
+						case Drone
+						of drone(row:Row) then
+							if PlayerPosition.y == Row then Answer = true
+							else Answer = false
+							end
+						[] drone(column:Column) then
+							if PlayerPosition.x == Column then Answer = true
+							else Answer = false
+							end
+						else %something went wrong
+							{ERR 'Drone has an invalid format'#Drone}
 						end
 					else %something went wrong
-						{ERR 'Drone has an invalid format'#Drone}
+						{ERR 'LocationState has an invalid format'#LocationState}
 					end
-				else %something went wrong
-					{ERR 'LocationState has an invalid format'#LocationState}
+					ReturnedState = State
 				end
-				ReturnedState = State
 			%--------- This player's drone came back with answers -----------
 			[] sayAnswerDrone(Drone ID Answer) then
 				%Ignore
 				ReturnedState = State
 			%---- A sonar is detecting => this player gives coordinates (one right, one wrong) --------
 			[] sayPassingSonar(?ID ?Answer) then
-				ID = PlayerID
-				Answer = {FakeCoordForSonars State}
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					ID = PlayerID
+					Answer = {FakeCoordForSonars State}
 				
-				ReturnedState = State
+					ReturnedState = State
+				end
 			%--------- This player's sonar probing answers ----------------
 			[] sayAnswerSonar(ID Answer) then
 				%Ignore
