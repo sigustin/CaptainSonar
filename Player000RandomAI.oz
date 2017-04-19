@@ -61,7 +61,6 @@ in
 	% @stateLocation(pos:Position dir:Direction visited:VisitedSquares)
 	%     @VisitedSquares is a list of all the positions visited since the last surface phase
 	%                     Those cannot be visited again on the same diving phase
-	%                    => Main should NOT allow a player to dive while it's underwater
 	% @stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 	%    @nbX is the number of X available to the player
 	%    @XLoading is the number of loading charges for the weapon X currently loaded by the player
@@ -77,7 +76,7 @@ in
 
 	%============== Make the port object ========================
 	% @StartPlayer : Initializes the player (ID, position, weapons, etc.)
-	%                and create the port object
+	%                and creates the port object
 	fun {StartPlayer Color Num}
 		Stream
 		Port
@@ -92,7 +91,7 @@ in
 	
 	% @TreatStream : Loop that checks if some new messages are sent to the port 
 	%                and treats them
-	%                The attributes of this procedure keep track of the state of this port object
+	%                The parameters of this procedure keep track of the state of this port object
 	%                @ID (contains an ID number, a color and a name) should never be changed
 	%                @State contains every attribute of the current port object that could change
 	%                       (thus here : position, direction, life of the player, etc.)
