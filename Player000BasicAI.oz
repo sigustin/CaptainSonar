@@ -28,6 +28,8 @@ define
 	RandomStep
 	SquareNotVisited
 	
+	LoadWeapon
+	
 	PositionIsValid
 	
 	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 sonarsLoading:0)
@@ -127,7 +129,7 @@ in
 					ReturnedState = State
 				else
 					case LocationState
-					of stateLocation(pos:PlayerPosition dir:PlayerDirection visited:VisitedSqaures) then
+					of stateLocation(pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares) then
 						if PlayerDirection =< surface then
 							% Ignore
 							ReturnedState = State
@@ -139,6 +141,20 @@ in
 						ReturnedState = State
 					end
 				end
+			%------- Increase the loading of an item ---------------
+			[] chargeItem(?ID ?KindItem) then
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					NewWeaponsState
+				in
+					ID = PlayerID
+					%Load one of the weapons's loading charge
+					KindItem#NewWeaponsState = {LoadWeapon WeaponsState}
+					
+					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
+					end
 			%------- DEBUG : print yourself ------------------------
 			[] print then
 				{Browse PlayerID#State}
@@ -255,6 +271,59 @@ in
 		else %something went wrong
 			{ERR 'VisitedSquares has an invalid format'#VisitedSquares}
 			true %Prevents looping forever
+		end
+	end
+	
+	%============== Procedures regarding weapons ===================
+	% @LoadWeapon : Add a loading charge to one type of weapon
+	%               Returns the new weapons state and a weapon type if a new weapon is available
+	fun {LoadWeapon WeaponsState}
+		case WeaponsState
+		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
+			%TODO for the moment random
+			NewWeaponsState
+			NewWeaponAvailable
+		in
+			case {OS.rand} mod 4
+			of 0 then
+				NewWeaponsState = stateWeapons(minesLoading:MinesLoading+1 minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+				if (MinesLoading+1) mod Input.mine == 0 then
+					NewWeaponAvailable = mine
+				else
+					NewWeaponAvailable = null
+				end
+			[] 1 then
+				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading+1 dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+				if (MissilesLoading+1) mod Input.missile == 0 then
+					NewWeaponAvailable = missile
+				else
+					NewWeaponAvailable = null
+				end
+			[] 2 then
+				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading+1 sonarsLoading:SonarsLoading)
+				if (DronesLoading+1) mod Input.drone then
+					NewWeaponAvailable = drone
+				else
+					NewWeaponAvailable = null
+				end
+			[] 3 then
+				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading+1)
+				if (SonarsLoading+1) mod Input.sonar then
+					NewWeaponAvailable = sonar
+				else
+					NewWeaponAvailable = null
+				end
+			else %something went wrong
+				{ERR 'Randomized out-of-bound'}
+				NewWeaponAvailable = null %because we have to return something
+				NewWeaponsState = WeaponsState %idem
+			end
+			
+			%return
+			NewWeaponAvailable#NewWeaponsState
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			null#WeaponsState %because we have to return something
 		end
 	end
 	
