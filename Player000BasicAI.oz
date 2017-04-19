@@ -23,6 +23,10 @@ define
 	Behavior
 	
 	InitPosition
+	Move
+	NoSquareAvailable
+	RandomStep
+	SquareNotVisited
 	
 	PositionIsValid
 	
@@ -86,8 +90,55 @@ in
 			case Msg
 			%------------ Initialize position ---------------
 			of initPosition(?ID ?Position) then
-				%TODO
+				if PlayerLife =< 0 then
+					ID = null
+				else
+					case LocationState
+					of stateLocation(pos:PlayerPosition dir:_ visited:_) then
+						ID = PlayerID
+						Position = PlayerPosition
+					else %something went wrong
+						{ERR 'LocationState has an invalid format'#LocationState}
+					end
+				end
 				ReturnedState = State
+			%------- Move player -----------------------
+			[] move(?ID ?Position ?Direction) then
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					case {Move LocationState TrackingInfo}
+					of stateLocation(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) then
+						ID = PlayerID
+						Position = NewPosition
+						Direction = NewDirection
+						
+						ReturnedState = stateBasicAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) weaponsState:WeaponsState tracking:TrackingInfo)
+					else %something went wrong
+						{ERR 'Move returned something with an invalid format'}
+						%return the same state as before
+						ReturnedState = State
+					end
+				end
+			%-------- Permission to dive ----------------------
+			[] dive then
+				if PlayerLife =< 0 then
+					ReturnedState = State
+				else
+					case LocationState
+					of stateLocation(pos:PlayerPosition dir:PlayerDirection visited:VisitedSqaures) then
+						if PlayerDirection =< surface then
+							% Ignore
+							ReturnedState = State
+						else
+							ReturnedState = stateBasicAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:north visited:nil) wepaonsState:WeaponsState tracking:TrackingInfo)
+						end
+					else %something went wrong
+						{ERR 'LocationState has an invalid format'#LocationState}
+						ReturnedState = State
+					end
+				end
 			%------- DEBUG : print yourself ------------------------
 			[] print then
 				{Browse PlayerID#State}
@@ -112,6 +163,98 @@ in
 	in
 		if {PositionIsValid CurrentPosition} then CurrentPosition
 		else {InitPosition}
+		end
+	end
+	
+	%=========== Procedures related to movement ========================
+	% @Move : knowing that @this is at position @LocationState 
+	%         and the tracking info @TrackingInfo of other players,
+	%         decides where the player should move next
+	%         Returns the new position
+	fun {Move LocationState TrackingInfo}
+		case LocationState
+		of stateLocation(pos:Position dir:Direction visited:VisitedSquares) then
+			%---------- Player is at the surface => cannot move ------------
+			if Direction == surface then
+				% You will dive when you get the message @dive
+				%return
+				LocationState
+			%---------- Player is underwater => move to another position ---------
+			else %Direction \= surface
+				%Check if there is at least one square around that is available
+				if {NoSquareAvailable Position VisitedSquares} then %go to the surface
+					%return
+					stateLocation(pos:Position dir:surface visited:nil)
+				%Never go to the surface if another square is available
+				else
+					%TODO for the moment this is random
+					NewPosition
+					Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
+					DirectionTravelled %the direction towards which this player went
+				in
+					%Choose which axis to follow
+					if {OS.rand} mod 2 == 0 then % X-axis (vertically)
+						NewPosition = pt(x:Position.x+Movement y:Position.y)
+						if Movement == 1 then DirectionTravelled = south
+						else DirectionTravelled = north
+						end
+					else % Y-axis (horizontally)
+						NewPosition = pt(x:Position.x y:Position.y+Movement)
+						if Movement == 1 then DirectionTravelled = east
+						else DirectionTravelled = west
+						end
+					end
+					if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition VisitedSquares} then
+						%return
+						stateLocation(pos:NewPosition dir:DirectionTravelled visited:NewPosition|VisitedSquares)
+					else {Move LocationState TrackingInfo} %Choose another new position
+					end
+				end
+			end
+		else null
+		end
+	end
+	
+	% @NoSquareAvailable : Checks if there is at least one square around @PlayerPosition
+	%                      that is available
+	%                      Returns @true if no square is available, @false otherwise
+	fun {NoSquareAvailable PlayerPosition VisitedSquares}
+		PosNorth = pt(x:PlayerPosition.x-1 y:PlayerPosition.y)
+		PosSouth = pt(x:PlayerPosition.x+1 y:PlayerPosition.y)
+		PosEast = pt(x:PlayerPosition.x y:PlayerPosition.y+1)
+		PosWest = pt(x:PlayerPosition.x y:PlayerPosition.y-1)
+	in
+		if {PositionIsValid PosNorth} andthen {SquareNotVisited PosNorth VisitedSquares} then
+			false
+		elseif {PositionIsValid PosSouth} andthen {SquareNotVisited PosSouth VisitedSquares} then
+			false
+		elseif {PositionIsValid PosEast} andthen {SquareNotVisited PosEast VisitedSquares} then
+			false
+		elseif {PositionIsValid PosWest} andthen {SquareNotVisited PosWest VisitedSquares} then
+			false
+		else
+			true			
+		end
+	end
+	
+	%@RandomStep : returns either 1 or -1 (one-in-two chance)
+	fun {RandomStep}
+		if ({OS.rand} mod 2) == 0 then 1
+		else ~1
+		end
+	end
+	
+	% @SquareNotVisited : returns true if the squares hasn't been visited in this diving phase
+	fun {SquareNotVisited Position VisitedSquares}
+		case VisitedSquares
+		of nil then true
+		[] Square|Remainder then
+			if Position == Square then false
+			else {SquareNotVisited Position Remainder}
+			end
+		else %something went wrong
+			{ERR 'VisitedSquares has an invalid format'#VisitedSquares}
+			true %Prevents looping forever
 		end
 	end
 	

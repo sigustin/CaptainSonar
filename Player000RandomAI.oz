@@ -122,7 +122,7 @@ in
 					of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 						ID = PlayerID
 						Position = PlayerPosition
-					else skip %something went wrong
+					else %something went wrong
 						{ERR 'LocationState has an invalid format'#LocationState}
 					end
 					%return
@@ -142,7 +142,6 @@ in
 						%return
 						ReturnedState = stateRandomAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) weaponsState:WeaponsState)
 					else %something went wrong
-						{Browser.browse 'test'}
 						{ERR 'Move returned something with an invalid format'}
 						%return the same state as before
 						ReturnedState = State
@@ -371,17 +370,13 @@ in
 	fun {Move LocationState}
 		case LocationState
 		of stateLocation(pos:Position dir:Direction visited:VisitedSquares) then
-			%-------- Player is at the surface => choose to dive if you're allowed to ----------
+			%-------- Player is at the surface => you can't move ----------
 			if Direction == surface then
 				% You will dive when you get the message @dive
 				%return
 				LocationState
 			%--------- Player is underwater => move to another position ---------------
 			else %Direction \= surface
-				NewPosition
-				Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
-				DirectionTravelled %the direction towards which this player went
-			in
 				%Check if there is at least one position available around this player
 				if {NoSquareAvailable Position VisitedSquares} then %go to the surface
 					%return
@@ -391,6 +386,10 @@ in
 					%return
 					stateLocation(pos:Position dir:surface visited:nil)
 				else
+					NewPosition
+					Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
+					DirectionTravelled %the direction towards which this player went
+				in
 					%Choose which axis to follow
 					if {OS.rand} mod 2 == 0 then % X-axis (vertically)
 						NewPosition = pt(x:Position.x+Movement y:Position.y)
@@ -449,6 +448,7 @@ in
 	end
 	
 	% @NoSquareAvailable : checks if there is at least one square around @PlayerPosition
+	%                      that is available
 	%                      returns @true if no square is available, @false otherwise
 	fun {NoSquareAvailable PlayerPosition VisitedSquares}
 		PosNorth = pt(x:PlayerPosition.x-1 y:PlayerPosition.y)
