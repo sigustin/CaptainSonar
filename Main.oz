@@ -259,85 +259,99 @@ in
 	%			PlayersAlive alive state for the players that still have to play
 	%			NewPlayersAtSurface & NewPlayersAtSurface update the lists
 	%			NewPlayersAlive contruct newList of the players alive
-	%		TODO if a player is dead in the round he cannot play
 	proc {OneTurn PlayersPorts PlayersAliveFull PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn ?NewPlayersAlive}
+		LiveState2
+		IDPlayer
+		Dummy
+	in
 		%Temporary : needed to turn more than once
 		NewPlayersAlive = {CreatePlayersAlive Input.nbPlayer}
 
-		%case PlayersPorts|PlayersAlive|PlayersAtSurface|PlayersAtSurfaceWaitingTurn
-		%of (PlayerPort|PlayersPorts2)|(LiveState|PlayersAlive2)|(PlayerAtSurface|PlayersAtSurface2)|(PlayerAtSurfaceWaitingTurn|PlayersAtSurface2) then NewPlayersAlive2 NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2 NewPlayersAliveFull1 NewPlayersAliveFull2 in
-		%	if LiveState then
-		%		%our player is alive
-		%		if PlayerAtSurface and PlayerAtSurfaceWaitingTurn>0 then
-		%			%player has still to wait before he can dive again
-		%			NewPlayersAlive = true|NewPlayersAlive2
-		%			NewPlayersAtSurface = true|NewPlayersAtSurface2
-		%			NewPlayersAtSurfaceWaitingTurn = (PlayerAtSurfaceWaitingTurn-1)|NewPlayersAtSurface2
-		%			NewPlayersAliveFull2 = PlayersAliveFull
-		%		else ID Position Direction then
-		%			%can move again
-		%			if PlayerAtSurface then
-		%				{Send PLayerPort dive}
-		%			end
-%
-		%			%direction?
-		%			{Send PlayerPort move(ID Position Direction)}
-		%			{BroadcastDirection ID Direction}
-		%			if Direction==surface then
-		%				NewPlayersAtSurface = true|PlayersAtSurface2
-		%				NewPlayersAtSurfaceWaitingTurn = (Input.TurnSurface-1)|PlayersAtSurfaceWaitingTurn2
-		%				{Send PortWindow surface(ID)}
-		%			else KindItem KindFire Mine in
-		%				{Send PortWindow movePlayer(ID Position)}
-%
-		%				{Send PlayerPort chargeItem(ID KindItem)}
-		%				if ~(KindItem==null) then
-		%					{BroacastItemCharged ID KindItem}
-		%				end
-%
-		%				{Send PlayerPort fireItem(ID KindFire)}
-		%				if ~(KindFire==null) then Killed in
-		%					%broadcast and receive informations, change alive list
-		%					case KindFire
-		%					of missile(Pos) then
-		%						Killed = {MissileExplode ID Pos}
-		%					[] sonar then%TODO check if match
-		%						Killed = {SonarActivated ID KindFire}
-		%					[] drone then%TODO check if match
-		%						Killed = {DroneActivated ID KindFire}
-		%					end
-		%					{BroadcastKilled Killed}
-		%					NewPlayersAliveFull1 = {Kill PlayersAliveFull Killed}
-		%				else
-		%					NewPlayersAliveFull1 = PlayersAliveFull
-		%				end
-%
-		%
-		%				{Send PlayerPort fireMine(ID Mine)}
-		%				if ~(Mine==null) then Killed in
-		%					%broadcast and receive informations, change alive list
-		%					{MineExploded ID Mine}
-		%					{BroadcastKilled Killed}
-		%					NewPlayersAliveFull2 = {Kill PlayersAliveFull1 Killed}
-		%				else
-		%					NewPlayersAliveFull2 = NewPlayersAliveFull1
-		%				end
-		%			end
-		%		end
-		%	else
-		%		%our player is dead
-		%		NewPlayersAlive = false|NewPlayersAlive2
-		%		NewPlayersAtSurface = false|NewPlayersAtSurface2
-		%		NewPlayersAtSurfaceWaitingTurn = 0|NewPlayersAtSurface2
-		%		NewPlayersAliveFull2 = PlayersAliveFull
-		%	end
-		%	%next player
-		%	{OneTurn PlayersPorts NewPlayersAliveFull2 PlayersAtSurface2 PlayersAtSurfaceWaitingTurn2 PlayersAlive2 NewPlayersAtSurfaceWaitingTurn2 NewPlayersAtSurface2 NewPlayersAlive2}
-		%[] nil|nil|nil then
-		%	NewPlayersAtSurface = nil
-		%	NewPlayersAtSurfaceWaitingTurn = nil
-		%	NewPlayersAlive = nil
-		%end
+		if false then
+		case PlayersPorts|PlayersAlive|PlayersAtSurface|PlayersAtSurfaceWaitingTurn
+		of (PlayerPort|PlayersPorts2)|(LiveState|PlayersAlive2)|(PlayerAtSurface|PlayersAtSurface2)|(PlayerAtSurfaceWaitingTurn|PlayersAtSurfaceWaitingTurn2) then NewPlayersAlive2 NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2 NewPlayersAliveFull1 NewPlayersAliveFull2 in
+			{Send PlayerPort initPosition(IDPlayer Dummy)}
+			case IDPlayer
+			of null then
+				LiveState2 = false
+			else
+				LiveState2 = true
+			end
+			if LiveState2 then
+				%our player is alive
+				if false then
+				if (PlayerAtSurface andthen (PlayerAtSurfaceWaitingTurn>0)) then
+					%player has still to wait before he can dive again
+					NewPlayersAlive = true|NewPlayersAlive2
+					NewPlayersAtSurface = true|NewPlayersAtSurface2
+					NewPlayersAtSurfaceWaitingTurn = (PlayerAtSurfaceWaitingTurn-1)|NewPlayersAtSurfaceWaitingTurn2
+					NewPlayersAliveFull2 = PlayersAliveFull
+				else ID Position Direction in
+					%can move again
+					if PlayerAtSurface then
+						{Send PlayerPort dive}
+					end
+
+					%direction?
+					{Send PlayerPort move(ID Position Direction)}
+					{BroadcastDirection ID Direction}
+					if Direction==surface then
+						NewPlayersAtSurface = true|PlayersAtSurface2
+						NewPlayersAtSurfaceWaitingTurn = (Input.turnSurface-1)|PlayersAtSurfaceWaitingTurn2
+						{Send PortWindow surface(ID)}
+					else KindItem KindFire Mine in
+						{Send PortWindow movePlayer(ID Position)}
+
+						{Send PlayerPort chargeItem(ID KindItem)}
+						if ~(KindItem==null) then
+							{BroadcastItemCharged ID KindItem}
+						end
+
+						{Send PlayerPort fireItem(ID KindFire)}
+						if ~(KindFire==null) then Killed in
+							%broadcast and receive informations, change alive list
+							case KindFire
+							of missile(Pos) then
+								Killed = {MissileExplode ID Pos}
+							[] sonar then%TODO check if match
+								Killed = {SonarActivated ID}
+							[] drone then%TODO check if match
+								Killed = {DroneActivated ID KindFire}
+							end
+							{BroadcastKilled Killed}
+							NewPlayersAliveFull1 = {Kill PlayersAliveFull Killed}
+						else
+							NewPlayersAliveFull1 = PlayersAliveFull
+						end
+
+
+						{Send PlayerPort fireMine(ID Mine)}
+						if ~(Mine==null) then Killed in
+							%broadcast and receive informations, change alive list
+							Killed = {MineExploded ID Mine}
+							{BroadcastKilled Killed}
+							NewPlayersAliveFull2 = {Kill NewPlayersAliveFull1 Killed}
+						else
+							NewPlayersAliveFull2 = NewPlayersAliveFull1
+						end
+					end
+				end
+				end
+			else
+				%our player is dead
+				NewPlayersAlive = false|NewPlayersAlive2
+				NewPlayersAtSurface = false|NewPlayersAtSurface2
+				NewPlayersAtSurfaceWaitingTurn = 0|NewPlayersAtSurfaceWaitingTurn2
+				NewPlayersAliveFull2 = PlayersAliveFull
+			end
+			%next player
+			{OneTurn PlayersPorts NewPlayersAliveFull2 PlayersAtSurface2 PlayersAtSurfaceWaitingTurn2 PlayersAlive2 NewPlayersAtSurfaceWaitingTurn2 NewPlayersAtSurface2 NewPlayersAlive2}
+		[] nil|nil|nil then
+			NewPlayersAtSurface = nil
+			NewPlayersAtSurfaceWaitingTurn = nil
+			NewPlayersAlive = nil
+		end
+		end
 		%if this player is not dead then set up variable in
 		%	if is at surface and turn to wait not at zero then
 		%		decrease turn to wait
@@ -368,7 +382,7 @@ in
 		%		end
 		%	end
 		%end
-		{Browser.browse 'OneTurn will be implemented in a short future'}
+		%{Browser.browse 'OneTurn will be implemented in a short future'}
 
 		%Tests of the messages
 		{TMPTestPlayers PlayersPorts}

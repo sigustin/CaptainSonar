@@ -11,7 +11,7 @@ ozc -c Player000RandomAI.oz && \
 echo "============ Compiling Player000BasicAI.oz ================" && \
 ozc -c Player000BasicAI.oz && \
 #echo "============ Compiling Player000Basic.oz ===============" && \
-#ozc -c Player000Basic.oz && \
+##ozc -c Player000Basic.oz && \
 #echo "============ Compiling Player000BasicRandom.oz ===============" && \
 #ozc -c Player000BasicRandom.oz && \
 
