@@ -36,6 +36,7 @@ define
 	SonarActivated
 	DroneActivated
 	MineExploded
+	IsAlive
 	OneTurn
 	TurnByTurn
 	Simultaneous
@@ -200,6 +201,8 @@ in
 				[] sayDamageTaken(IDDmg Damage LifeLeft) then
 					{BroadcastDamageTaken IDDmg Damage LifeLeft}
 					{PlayerByPlayer T}
+				[] null then
+					{PlayerByPlayer T}
 				end
 			[] nil then
 				nil
@@ -220,13 +223,13 @@ in
 		nil
 	end
 
-	% @DroneActivated : A Drone has been Activated broadcast it and return information to Id, rutun nil
+	% @DroneActivated : A Drone has been Activated broadcast it and return information to Id, return nil
 	fun {DroneActivated ID Drone}
 		PID = {Nth PlayersPorts ID}%TODO check 0 or 1
 	in
 		for P in PlayersPorts do IDRcv Answer in
 			{Send P sayPassingDrone(Drone ID Answer)}
-			{Send PID sayAnswerDrone(Drone ID Answer)}
+			{Send PID sayAnswerDrone(Drone IDRcv Answer)}
 		end
 		nil
 	end
@@ -243,6 +246,8 @@ in
 				[] sayDamageTaken(IDDmg Damage LifeLeft) then
 					{BroadcastDamageTaken IDDmg Damage LifeLeft}
 					{PlayerByPlayer T}
+				[] null then
+					{PlayerByPlayer T}
 				end
 			[] nil then
 				nil
@@ -252,40 +257,40 @@ in
 		{PlayerByPlayer PlayersPorts}
 	end
 
-	% @OneTurn : make one turn in TurnByTurn mode
-	%			PlayersPorts ports of the players
-	%			PlayersAliveFull maintain a full list of the alive state of the players
-	%			PlayersAtSurface & PlayersAtSurfaceWaitingTurn players surface state
-	%			PlayersAlive alive state for the players that still have to play
-	%			NewPlayersAtSurface & NewPlayersAtSurface update the lists
-	%			NewPlayersAlive contruct newList of the players alive
-	proc {OneTurn PlayersPorts PlayersAliveFull PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn ?NewPlayersAlive}
-		LiveState2
-		IDPlayer
+	% @IsAlive : Check if the player that listen to the port is dead
+	fun {IsAlive PlayerPort}
+		Id
 		Dummy
 	in
-		%Temporary : needed to turn more than once
-		NewPlayersAlive = {CreatePlayersAlive Input.nbPlayer}
+		{Send PlayerPort initPosition(Id Dummy)}
+		case Id
+		of null then
+			false
+		else
+			true
+		end
+	end
 
-		if false then
-		case PlayersPorts|PlayersAlive|PlayersAtSurface|PlayersAtSurfaceWaitingTurn
-		of (PlayerPort|PlayersPorts2)|(LiveState|PlayersAlive2)|(PlayerAtSurface|PlayersAtSurface2)|(PlayerAtSurfaceWaitingTurn|PlayersAtSurfaceWaitingTurn2) then NewPlayersAlive2 NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2 NewPlayersAliveFull1 NewPlayersAliveFull2 in
-			{Send PlayerPort initPosition(IDPlayer Dummy)}
-			case IDPlayer
-			of null then
-				LiveState2 = false
-			else
-				LiveState2 = true
-			end
-			if LiveState2 then
+	% @OneTurn : make one turn in TurnByTurn mode
+	%			PlayersPorts ports of the players
+	%			PlayersAtSurface & PlayersAtSurfaceWaitingTurn players surface state
+	%			NewPlayersAtSurface & NewPlayersAtSurface update the lists
+	% TODO set GUI update
+	proc {OneTurn PlayersPorts PlayersAtSurface PlayersAtSurfaceWaitingTurn NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn}
+
+		%{Browser.browse {Length PlayersPorts}}
+		%Temporary : needed to turn more than once
+		%NewPlayersAlive = {CreatePlayersAlive Input.nbPlayer}
+
+		case PlayersPorts|PlayersAtSurface|PlayersAtSurfaceWaitingTurn
+		of (PlayerPort|PlayersPorts2)|(PlayerAtSurface|PlayersAtSurface2)|(PlayerAtSurfaceWaitingTurn|PlayersAtSurfaceWaitingTurn2) then NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2 in
+
+			if {IsAlive PlayerPort} then
 				%our player is alive
-				if false then
 				if (PlayerAtSurface andthen (PlayerAtSurfaceWaitingTurn>0)) then
 					%player has still to wait before he can dive again
-					NewPlayersAlive = true|NewPlayersAlive2
 					NewPlayersAtSurface = true|NewPlayersAtSurface2
 					NewPlayersAtSurfaceWaitingTurn = (PlayerAtSurfaceWaitingTurn-1)|NewPlayersAtSurfaceWaitingTurn2
-					NewPlayersAliveFull2 = PlayersAliveFull
 				else ID Position Direction in
 					%can move again
 					if PlayerAtSurface then
@@ -295,20 +300,32 @@ in
 					%direction?
 					{Send PlayerPort move(ID Position Direction)}
 					{BroadcastDirection ID Direction}
-					if Direction==surface then
+
+					case Direction
+					of surface then
 						NewPlayersAtSurface = true|PlayersAtSurface2
 						NewPlayersAtSurfaceWaitingTurn = (Input.turnSurface-1)|PlayersAtSurfaceWaitingTurn2
 						{Send PortWindow surface(ID)}
 					else KindItem KindFire Mine in
+						NewPlayersAtSurface = false|PlayersAtSurface2
+						NewPlayersAtSurfaceWaitingTurn = 0|PlayersAtSurfaceWaitingTurn2
+
 						{Send PortWindow movePlayer(ID Position)}
 
 						{Send PlayerPort chargeItem(ID KindItem)}
-						if ~(KindItem==null) then
+						case KindItem
+						of null then
+							skip
+						else
 							{BroadcastItemCharged ID KindItem}
 						end
 
 						{Send PlayerPort fireItem(ID KindFire)}
-						if ~(KindFire==null) then Killed in
+
+						case KindFire
+						of null then
+							skip
+						else Killed in
 							%broadcast and receive informations, change alive list
 							case KindFire
 							of missile(Pos) then
@@ -319,39 +336,34 @@ in
 								Killed = {DroneActivated ID KindFire}
 							end
 							{BroadcastKilled Killed}
-							NewPlayersAliveFull1 = {Kill PlayersAliveFull Killed}
-						else
-							NewPlayersAliveFull1 = PlayersAliveFull
 						end
 
-
-						{Send PlayerPort fireMine(ID Mine)}
-						if ~(Mine==null) then Killed in
-							%broadcast and receive informations, change alive list
-							Killed = {MineExploded ID Mine}
-							{BroadcastKilled Killed}
-							NewPlayersAliveFull2 = {Kill NewPlayersAliveFull1 Killed}
-						else
-							NewPlayersAliveFull2 = NewPlayersAliveFull1
+						if {IsAlive PlayerPort} then
+							{Send PlayerPort fireMine(ID Mine)}
+							case Mine
+							of null then
+								skip
+							else Killed in
+								%broadcast and receive informations, change alive list
+								Killed = {MineExploded ID Mine}
+								{BroadcastKilled Killed}
+							end
 						end
 					end
 				end
-				end
 			else
 				%our player is dead
-				NewPlayersAlive = false|NewPlayersAlive2
 				NewPlayersAtSurface = false|NewPlayersAtSurface2
 				NewPlayersAtSurfaceWaitingTurn = 0|NewPlayersAtSurfaceWaitingTurn2
-				NewPlayersAliveFull2 = PlayersAliveFull
 			end
 			%next player
-			{OneTurn PlayersPorts NewPlayersAliveFull2 PlayersAtSurface2 PlayersAtSurfaceWaitingTurn2 PlayersAlive2 NewPlayersAtSurfaceWaitingTurn2 NewPlayersAtSurface2 NewPlayersAlive2}
+			%{Browser.browse 'fin'}
+			{OneTurn PlayersPorts2 PlayersAtSurface2 PlayersAtSurfaceWaitingTurn2 NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2}
 		[] nil|nil|nil then
 			NewPlayersAtSurface = nil
 			NewPlayersAtSurfaceWaitingTurn = nil
-			NewPlayersAlive = nil
 		end
-		end
+
 		%if this player is not dead then set up variable in
 		%	if is at surface and turn to wait not at zero then
 		%		decrease turn to wait
@@ -382,10 +394,9 @@ in
 		%		end
 		%	end
 		%end
-		%{Browser.browse 'OneTurn will be implemented in a short future'}
 
 		%Tests of the messages
-		{TMPTestPlayers PlayersPorts}
+		%{TMPTestPlayers PlayersPorts}
 		%End of tests
 	end
 
@@ -416,10 +427,10 @@ in
 	end
 
 	% @NumberAlive : return the number of players alive
-	fun {NumberAlive PlayersAlive Acc}
-		case PlayersAlive
+	fun {NumberAlive PlayersPorts Acc}
+		case PlayersPorts
 		of H|T then
-			if H then
+			if {IsAlive H} then
 				{NumberAlive T Acc+1}
 			else
 				{NumberAlive T Acc}
@@ -430,34 +441,33 @@ in
 	end
 
 	% @TurnByTurn : run the game in turn by turn mode
-	proc {TurnByTurn NTurn PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive}
+	proc {TurnByTurn NTurn PlayersAtSurface PlayersAtSurfaceWaitingTurn}
 		%display information
 	   {Browser.browse 'Turn number : '#NTurn#'out of'#NTurnMax}
 		%if NTurnMax is reached stop
 		if NTurn<NTurnMax then
-			NumAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn NewPlayersAlive in
+			NumAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn in
 
-			NumAlive = {NumberAlive PlayersAlive.1 0}
+			NumAlive = {NumberAlive PlayersPorts 0}
 			if NumAlive==0 then
 				{Browser.browse 'Players are all dead'}
 			elseif NumAlive==1 then
 				{Browser.browse 'One player left, we have a winner!!!'}
 			else
 			   %Simulate One Turn
-			   {OneTurn PlayersPorts PlayersAlive PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 PlayersAlive.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn NewPlayersAlive}
+			   {OneTurn PlayersPorts PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn}
 
 			   %update state
 			   PlayersAtSurface.2 = NewPlayersAtSurface|_
 			   PlayersAtSurfaceWaitingTurn.2 = NewPlayersAtSurfaceWaitingTurn|_
-			   PlayersAlive.2 = NewPlayersAlive|_
 
 			   %delay to see whats happening
 			   {Delay 1000}
 
 			   % next turn
-		   	{TurnByTurn NTurn+1 PlayersAtSurface.2 PlayersAtSurfaceWaitingTurn.2 PlayersAlive.2}
-	   	end
-   	end
+		   		{TurnByTurn NTurn+1 PlayersAtSurface.2 PlayersAtSurfaceWaitingTurn.2}
+	   		end
+   		end
 	end
 
 	% @Simultaneous : run the game in simultaneous mode
@@ -467,7 +477,16 @@ in
 	end
 
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	%=================== Execution ===========================
+	%===================				{Browser.browse 'Players are all dead'}
+			elseif NumAlive==1 then
+				{Browser.browse 'One player left, we have a winner!!!'}
+			else
+			   %Simulate One Turn
+			   {OneTurn PlayersPorts PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn}
+
+			   %update state
+			   PlayersAtSurface.2 = NewPlayersAtSurface|_
+			   PlayersAtSurfaceWaitingTurn.2 = NewPlayersAtSurfaceW Execution ===========================
 	%========= Create the GUI port and run its interface =============
 	PortWindow = {GUI.portWindow}
 	{Send PortWindow buildWindow}
@@ -490,7 +509,7 @@ in
 	%============== Run the game ==================
 	if Input.isTurnByTurn then
 		%--------- Turn by turn game ----------------
-		{TurnByTurn 0 PlayersAtSurface PlayersAtSurfaceWaitingTurn PlayersAlive}
+		{TurnByTurn 0 PlayersAtSurface PlayersAtSurfaceWaitingTurn}
 	else
 		%--------- Simultaneous game ----------------
 		{Simultaneous}

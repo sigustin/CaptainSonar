@@ -203,6 +203,9 @@ in
 						end
 						%return
 						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
+					else
+						KindFire = null%Simon demande de vérification sur ce changement (KindFire pas bind sans ce changement)
+						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState)%vérif
 					end
 				end
 			%-------- Choose to explode a placed mine -----------------
@@ -523,10 +526,10 @@ in
 			% Choose a type of weapon to try and fire
 			case {OS.rand} mod 4
 			% If a weapon is available, fire it with a one-in-two chance
-			of 0 then if NbMines > 0 andthen ({OS.rand} mod 2) then mine else null end
-			[] 1 then if NbMissiles > 0 andthen ({OS.rand} mod 2) then missile else null end
-			[] 2 then if NbDrones > 0 andthen ({OS.rand} mod 2) then drone else null end
-			[] 3 then if NbSonars > 0 andthen ({OS.rand} mod 2) then sonar else null end
+			of 0 then if NbMines > 0 andthen ({OS.rand} mod 2)==1 then mine else null end
+			[] 1 then if NbMissiles > 0 andthen ({OS.rand} mod 2)==1 then missile else null end
+			[] 2 then if NbDrones > 0 andthen ({OS.rand} mod 2)==1 then drone else null end
+			[] 3 then if NbSonars > 0 andthen ({OS.rand} mod 2)==1 then sonar else null end
 			else null
 			end
 		else %something went wrong
