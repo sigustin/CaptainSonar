@@ -394,6 +394,7 @@ in
 		%		end
 		%	end
 		%end
+		%{Browser.browse 'OneTurn will be implemented in a short future'}
 
 		%Tests of the messages
 		%{TMPTestPlayers PlayersPorts}
@@ -477,16 +478,7 @@ in
 	end
 
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	%===================				{Browser.browse 'Players are all dead'}
-			elseif NumAlive==1 then
-				{Browser.browse 'One player left, we have a winner!!!'}
-			else
-			   %Simulate One Turn
-			   {OneTurn PlayersPorts PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn}
-
-			   %update state
-			   PlayersAtSurface.2 = NewPlayersAtSurface|_
-			   PlayersAtSurfaceWaitingTurn.2 = NewPlayersAtSurfaceW Execution ===========================
+	%=================== Execution ===========================
 	%========= Create the GUI port and run its interface =============
 	PortWindow = {GUI.portWindow}
 	{Send PortWindow buildWindow}
