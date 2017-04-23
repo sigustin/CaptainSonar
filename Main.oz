@@ -39,6 +39,8 @@ define
 	IsAlive
 	OneTurn
 	TurnByTurn
+	CheckEnd
+	OnePlayerSimultaneous
 	Simultaneous
 
 	%=========== TMP ====================
@@ -212,24 +214,24 @@ in
 		{PlayerByPlayer PlayersPorts}
 	end
 
-	% @SonarActivated : A sonar has been Activated broadcast it and return information to ID, return nil
-	fun {SonarActivated ID}
-		PID = {Nth PlayersPorts ID}%TODO check 0 or 1
-	in
-		for P in PlayersPorts do IDRcv Answer in
-			{Send P sayPassingSonar(IDRcv Answer)}
-			{Send PID sayAnswerSonar(IDRcv Answer)}
+	% @SonarActivated : A sonar has been Activated broadcast it and return information to PID, return nil
+	fun {SonarActivated ID PID}
+		for P in PlayersPorts do
+			local IDRcv Answer in
+				{Send P sayPassingSonar(IDRcv Answer)}
+				{Send PID sayAnswerSonar(IDRcv Answer)}
+			end
 		end
 		nil
 	end
 
-	% @DroneActivated : A Drone has been Activated broadcast it and return information to Id, return nil
-	fun {DroneActivated ID Drone}
-		PID = {Nth PlayersPorts ID}%TODO check 0 or 1
-	in
-		for P in PlayersPorts do IDRcv Answer in
-			{Send P sayPassingDrone(Drone ID Answer)}
-			{Send PID sayAnswerDrone(Drone IDRcv Answer)}
+	% @DroneActivated : A Drone has been Activated broadcast it and return information to PID, return nil
+	fun {DroneActivated ID PID Drone}
+		for P in PlayersPorts do
+			local IDRcv Answer in
+				{Send P sayPassingDrone(Drone ID Answer)}
+				{Send PID sayAnswerDrone(Drone IDRcv Answer)}
+			end
 		end
 		nil
 	end
@@ -330,10 +332,12 @@ in
 							case KindFire
 							of missile(Pos) then
 								Killed = {MissileExplode ID Pos}
-							[] sonar then%TODO check if match
-								Killed = {SonarActivated ID}
-							[] drone then%TODO check if match
-								Killed = {DroneActivated ID KindFire}
+							[] sonar then
+								Killed = {SonarActivated ID PlayerPort}
+							[] drone(row:X) then
+								Killed = {DroneActivated ID PlayerPort KindFire}
+							[] drone(column:Y) then
+								Killed = {DroneActivated ID PlayerPort KindFire}
 							end
 							{BroadcastKilled Killed}
 						end
@@ -471,10 +475,107 @@ in
    		end
 	end
 
+	% @OnePlayerSimultaneous : Handle the play of the player listening to P (launch it inside a thread for each player)
+	proc {OnePlayerSimultaneous P}
+		if {IsAlive P} andthen {NumberAlive PlayersPorts 0}>1 then ID Position Direction in
+			%our player is alive
+			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
+
+			%direction?
+			{Send P move(ID Position Direction)}
+			{BroadcastDirection ID Direction}
+
+			case Direction
+			of surface then
+				{Send PortWindow surface(ID)}
+				{Delay Input.turnSurface}
+				{Send P dive}
+				{OnePlayerSimultaneous P}
+			else KindItem KindFire Mine in
+
+				{Send PortWindow movePlayer(ID Position)}
+
+				{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
+
+				{Send P chargeItem(ID KindItem)}
+				case KindItem
+				of null then
+					skip
+				else
+					{BroadcastItemCharged ID KindItem}
+				end
+
+				{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
+
+				{Send P fireItem(ID KindFire)}
+
+				case KindFire
+				of null then
+					skip
+				else Killed in
+					%broadcast and receive informations, change alive list
+					case KindFire
+					of missile(Pos) then
+						Killed = {MissileExplode ID Pos}
+					[] sonar then
+						Killed = {SonarActivated ID P}
+					[] drone(column:X) then
+						Killed = {DroneActivated ID P KindFire}
+					[] drone(row:Y) then
+						Killed = {DroneActivated ID P KindFire}
+					end
+					{BroadcastKilled Killed}
+				end
+
+				if {IsAlive P} then
+					{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
+
+					{Send P fireMine(ID Mine)}
+					case Mine
+					of null then
+						skip
+					else Killed in
+						%broadcast and receive informations, change alive list
+						Killed = {MineExploded ID Mine}
+						{BroadcastKilled Killed}
+					end
+				end
+
+				{OnePlayerSimultaneous P}
+			end
+		end
+	end
+
+	% @CheckEnd : Bind the variable in argument when the game is finished
+	proc {CheckEnd GameFinished}
+		if {NumberAlive PlayersPorts 0}>1 then
+			{Delay 1000}
+			{CheckEnd GameFinished}
+		else
+			GameFinished = true
+		end
+	end
+
 	% @Simultaneous : run the game in simultaneous mode
 	proc {Simultaneous}
-	   {Browser.browse 'simultaneous'}
-	   %TODO
+		GameFinished
+	in
+	   {Browser.browse 'Simultaneous'}
+
+	   %Launch one thread by player that simulate the actions of each one
+	   for P in PlayersPorts do
+	   		thread
+				{Send P dive}
+				{OnePlayerSimultaneous P}
+			end
+		end
+
+		{CheckEnd GameFinished}
+
+		if GameFinished then
+			{Browser 'The game is finished'}
+		end
+
 	end
 
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
