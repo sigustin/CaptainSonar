@@ -64,7 +64,23 @@ in
 	%						how much of this weapon is currently available (using mod)
 	%		@MinesPlaced is a list of all the mines this player has placed
 	%							and that haven't exploded yet (with ther position)
-	% @stateTracking (WORK IN PROGRESS)
+	% @stateTracking(Infos)
+	%     @Infos is an array containing records with the following format :
+	%            @trackingInfo(id:ID track:Track)
+	%                 where @ID is the ID of one player tracked
+	%                       @Track is a record of type :
+	%                             @trackInfo(surface:Surface x:X y:Y)
+	%                                  where @Surface is a boolean (@true if player @ID is
+	%                                                               at the surface)
+	%                                        @X and @Y are one of the following records
+	%                                            @unknown if we have no idea about this coord
+	%                                            @supposed(Coord) if we think it might be the
+	%                                                             coordinate of the player
+	%                                                             (both coordinates received by
+	%                                                              a sonar for example)
+	%                                            @certain(Coord) if we know the coordinate is right
+	%                                        Computations will be done on those when a player is
+	%                                            broadcast to be moving
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
 	%============ Make the port object ===================
