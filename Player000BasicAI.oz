@@ -38,6 +38,8 @@ define
 	FireDrone
 	FireSonar
 	
+	ExplodeMine
+	
 	PositionIsValid
 	
 	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 sonarsLoading:0)
@@ -182,6 +184,22 @@ in
 						else %something went wrong
 							{ERR 'LocationState has an invalid format'#LocationState}
 						end
+					end
+				end
+			%------- Choose to explode a placed mine ---------------
+			[] fireMine(?ID ?Mine) then
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					ID = PlayerID
+					case {ExplodeMine WeaponsState TrackingInfo}
+					of MineExploding#NewWeaponsState then
+						Mine = MineExploding
+						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking::TrackingInfo)
+					else %something went wrong
+						{ERR 'ExplodeMine did not return a record correctly formatted'}
+						ReturnedState = State
 					end
 				end
 			%------- DEBUG : print yourself ------------------------
@@ -434,6 +452,38 @@ in
 		% Check the distances
 		if DistanceFromPlayer >= Input.minDistanceMins andthen DistanceFromPlayer =< Input.maxDistanceMine then mine(RandomPosition)
 		else {PlaceMine PlayerPosition TrackingInfo}
+		end
+	end
+	
+	% @ExplodeMine : Checks if there is a mine in the list of mines placed (contained in @WeaponsState)
+	%                Chooses if one of those mine should explode and which one.
+	%                Returns the mine exploding and the new weapons' state (with the new list of mines remaining)
+	% TODO for the moment this is random
+	fun {ExplodeMine WeaponsState TrackingInfo}
+		fun {Loop MinesPlaced MinesAccumulator}
+			case MinesPlaced
+			of Mine|Remainder then
+				%Choose to explode this mine (one-in-two chances)
+				if {OS.rand} mod 2 then Mine#{Append MinesAccumulator Remainder}
+				else {Loop Remainder {Append MinesAccumulator Mine}}
+				end
+			[] nil then %No mine has exploded
+				null#MinesAccumulator
+			else %something went wrong
+				{ERR 'MinesPlaced has an invalid format'#MinesPlaced}
+				null#MinesPlaced %because we have to return something
+			end
+		end
+	in
+		case WeaponsState
+		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
+			case {Loop MinesPlaced nil}
+			of Mine#RemainingMines then
+				Mine#stateWeapons(minesLoading:MinesLoading minesPlaced:RemainingMines missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+			end
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			null#WeaponsState %because we have to return something
 		end
 	end
 	
