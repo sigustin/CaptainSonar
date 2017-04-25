@@ -435,7 +435,7 @@ in
 	%              Returns the created mine (with the position of setup as a parameter)
 	% TODO for the moment this is random
 	fun {PlaceMine PlayerPosition TrackingInfo}
-		RandomPosition = pt(x:{OS.rand} mod Input.nRow)+1 y:{OS.rand} mod Input.nColumn)+1}
+		RandomPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
 		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
 	in
 		% Check the distances

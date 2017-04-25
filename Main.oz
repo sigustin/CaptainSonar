@@ -35,6 +35,7 @@ define
 	MissileExplode
 	SonarActivated
 	DroneActivated
+	MinePlaced
 	MineExploded
 	IsAlive
 	OneTurn
@@ -236,6 +237,14 @@ in
 		nil
 	end
 
+	% @MinePlaced : A Mine has been placed broadcast information, return nil
+	fun {MinePlaced ID}
+		for P in PlayersPorts
+			{Send P sayMinePlaced(ID)}
+		end
+		nil
+	end
+
 	% @MineExploded : A Mine has been exploded broacast it and broadcast the damage taken, return the Killed
 	fun {MineExploded ID Pos}
 		fun {PlayerByPlayer PlayersPorts}
@@ -338,6 +347,8 @@ in
 								Killed = {DroneActivated ID PlayerPort KindFire}
 							[] drone(column:Y) then
 								Killed = {DroneActivated ID PlayerPort KindFire}
+							[] mine(pt(x:X y:Y)) then
+								Killed = {MinePlaced ID}
 							end
 							{BroadcastKilled Killed}
 						end
