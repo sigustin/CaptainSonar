@@ -202,6 +202,23 @@ in
 						ReturnedState = State
 					end
 				end
+			%------- Is this player at the surface? ---------------
+			[] isSurface(?ID ?Answer) then
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					ID = PlayerID
+					case LocationState
+					of stateLocation(pos:_ dir:Direction visited:_) then
+						if Direction == surface then Answer = true
+						else Answer = false
+						end
+					else  %something went wrong
+						{ERR 'LocationState has an invalid format'#LocationState}
+					end
+					ReturnedState = State
+				end
 			%------- DEBUG : print yourself ------------------------
 			[] print then
 				{Browse PlayerID#State}
