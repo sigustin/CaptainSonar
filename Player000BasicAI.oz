@@ -30,6 +30,14 @@ define
 	
 	LoadWeapon
 	
+	ChooseWhichToFire
+	FireWeapon
+	UpdateWeaponsState
+	PlaceMine
+	FireMissile
+	FireDrone
+	FireSonar
+	
 	PositionIsValid
 	
 	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 sonarsLoading:0)
@@ -154,7 +162,28 @@ in
 					KindItem#NewWeaponsState = {LoadWeapon WeaponsState}
 					
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
+				end
+			%------- Fire a weapon -------------------
+			%TODO for the moment it's random
+			[] fireItem(?ID ?KindFire) then
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					FiredWeaponType = {ChooseWhichToFire WeaponState TrackingInfo}
+					NewWeaponsState
+				in
+					ID = PlayerID
+					if FiredWeaponType \= null then
+						% Fire a weapon of type @FiredWeaponType
+						case LocationState
+						of stateLocation(pos:PlayerPosition dir:_ visited:_) then
+							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType WeaponsState TrackingInfo}
+						else %something went wrong
+							{ERR 'LocationState has an invalid format'#LocationState}
+						end
 					end
+				end
 			%------- DEBUG : print yourself ------------------------
 			[] print then
 				{Browse PlayerID#State}
@@ -325,6 +354,81 @@ in
 			{ERR 'WeaponsState has an invalid format'#WeaponsState}
 			null#WeaponsState %because we have to return something
 		end
+	end
+	
+	% @ChooseWhichToFire : If a weapon is available and @this wants to shoot
+	%                      somewhere, decides which weapon to use and
+	%                      returns it
+	% TODO for the moment this is random
+	fun {ChooseWhichToFire WeaponsState TrackingInfo}
+		case WeaponsState
+		of stateWeapons(minesLoading:MinesLoading minesPlaced_ missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
+			% Choose a type of weapon to try and fire
+			case {OS.rand} mod 4
+			% If this type od weapon is available, fire it with a one-in-two chance
+			of 0 then if MinesLoading div Input.mine > 0 then mine else null end
+			[] 1 then if MissilesLoading div Input.mine > 0 then missile else null end
+			[] 2 then if DronesLoading div Input.drone > 0 then drone else null end
+			[] 3 then if SonarsLoading div Input.sonar > 0 then sonar else null end
+			else null
+			end
+		else %something went wrong
+			{ERR 'WeaponsState has an invlaid format'#WeaponsState}
+			null %because we have to return something
+		end
+	end
+	
+	% @FireWeapon : Fires a weapon of type @WeaponType
+	%               Returns the weapon fired (with parameters) and
+	%               the new weapons's state
+	fun {FireWeapon WeaponType PlayerState}
+		case PlayerState
+		of stateBacisAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ visited:_) weaponsState:stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) tracking:TrackingInfo) then
+			% Check the distances
+			case WeaponType
+			of mine then
+				NewMine = {PlaceMine PlayerPosition TrackingInfo}
+			in
+				NewMine#{UpdateWeaponsState WeaponsState NewMine}
+			[] missile then
+				{FireMissile PlayerPosition TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+			[] drone then
+				{FireDrone TrackingInfo}#{UpdateWeaponState WeaponsState WeaponType}
+			[] sonar then
+				{FireSonar TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+			else null#WeaponsState
+			end
+		end %something went wrong
+			{ERR 'PlayerState has an invalid format'#PlayerState}
+			null#WeaponsState %because we have to return something
+	end
+	
+	% @UpdateWeaponsState : Returns the updated weapons's state after firing
+	%                       a weapon of type @WeaponFired
+	%                       (for a mine it is the mine fired)
+	fun {UpdateWeaponsState WeaponsState WeaponFired}
+		case WeaponsState
+		of stateWeapons(miensLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronaesLoading sonarsLoading:SonarsLoading) then
+			case WeaponFired
+			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:Weapon|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+			[] missile then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading-Input.missile dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+			[] drone then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone sonarsLoading:SonarsLoading)
+			[] sonar then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading-Input.sonar)
+			else WeaponsState
+			end
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			WeaponsState %because we have to return something
+		end
+	end
+	
+	% @PlaceMine : Creates a mine at a random position on the grid
+	%              but in the range from the player where it is allowed to place mines
+	%              and if it know where another player is
+	%              Returns the created mine (with the position of setup as a parameter)
+	% TODO for the moment this is random
+	fun {PlaceMine PlayerPosition TrackingInfo}
+		
 	end
 	
 	%============== Useful procedures and functions ================

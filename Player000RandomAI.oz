@@ -541,7 +541,7 @@ in
 	%               Call one of the following : @PlaceMine, @FireMissile, @FireDrone or @FireSonar
 	fun {FireWeapon WeaponType PlayerState}
 		case PlayerState
-		of stateRandomAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState) then
+		of stateRandomAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState) then
 			case WeaponType
 			of mine then
 				NewMine = {PlaceMine PlayerPosition}
@@ -553,11 +553,11 @@ in
 				{FireDrone}#{UpdateWeaponsState WeaponsState WeaponType}
 			[] sonar then
 				{FireSonar}#{UpdateWeaponsState WeaponsState WeaponType}
-			else null
+			else null#WeaponsState
 			end
 		else %something went wrong
 			{ERR 'PlayerState has an invalid format'#PlayerState}
-			null %because we have to return something
+			null#WeaponsState %because we have to return something
 		end
 	end
 	
