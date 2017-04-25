@@ -111,7 +111,6 @@ in
 	in
 		case State
 		of stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState) then
-			%{Browser.browse Msg}
 			case Msg
 			%---------- Initialize position -------------
 			of initPosition(?ID ?Position) then
