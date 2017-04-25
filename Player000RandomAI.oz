@@ -193,6 +193,9 @@ in
 					FiredWeaponType = {ChooseWhichToFire WeaponsState}
 					NewWeaponsState
 				in
+					%DEBUG
+					%case WeaponsState of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then {Browse 'bf'#ID#MinesPlaced} end
+					
 					ID = PlayerID
 					if FiredWeaponType \= null then
 						% Fire a weapon of type @FiredWeaponType
@@ -204,6 +207,9 @@ in
 						end
 						%return
 						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
+						
+						%DEBUG
+						%case WeaponsState of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then if MinesPlaced \= nil then {Browse 'af'#ID#MinesPlaced} end end*/
 					else
 						KindFire = null
 						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState)

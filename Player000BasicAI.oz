@@ -253,6 +253,21 @@ in
 						ReturnedState = State
 					end
 				end
+			%-------- A mine exploded (is this player damaged?) -------------
+			[] sayMineExplode(ID Position ?Message) then
+				if PlayerLife =< 0 then
+					Msg = sayDeath(PlayerID)
+					ReturnedState = State
+				else
+					case {ExplosionHappened Position PlayerID State}
+					of Msg#NewState then
+						Message = Msg
+						ReturnedState = NewState
+					else %something went wrong
+						{ERR 'ExplosionHappened did not return a record correctly formatted'}
+						ReturnedState = State
+					end
+				end
 			%------- DEBUG : print yourself ------------------------
 			[] print then
 				{Browse PlayerID#State}
