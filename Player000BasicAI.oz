@@ -300,7 +300,7 @@ in
 			[] sayAnswerDrone(Drone ID Answer) then
 				%TODO
 				ReturnedState = State
-			%----- A sonar is detectin => this player gives coordinates (one right, one wrong) ------
+			%----- A sonar is detecting => this player gives coordinates (one right, one wrong) ------
 			[] sayPassingSonar(?ID ?Answer) then
 				if PlayerLife =< 0 then
 					ID = null
@@ -311,6 +311,18 @@ in
 					
 					ReturnedState = State
 				end
+			%-------- This palyer's sonar probing answers ------------------
+			[] sayAnswerSonar(ID Answer) then
+				%TODO
+				ReturnedState = State
+			%-------- Flash info : player @ID is dead -----------------
+			[] sayDeath(ID) then
+				%TODO
+				ReturnedState = State
+			%-------- Flash info : player @ID hastaken @Damage damages ------------
+			[] sayDamageTaken(ID Damage LifeLeft) then
+				%TODO
+				ReturnedState = State
 			%------- DEBUG : print yourself ------------------------
 			[] print then
 				{Browse PlayerID#State}
