@@ -219,6 +219,22 @@ in
 					end
 					ReturnedState = State
 				end
+			%------- Flash info : player @ID has moved in the direction @Direction ----------
+			[] sayMove(ID Direction) then
+				%TODO
+				ReturnedState = State
+			%-------- Flash info : player @ID has made surface --------------
+			[] saySurface(ID) then
+				%TODO
+				ReturnedState = State
+			%------- Flash info : player @ID has the item @KindItem ----------
+			[] sayCharge(ID KindItem) then
+				%TODO
+				ReturnedState = State
+			%------- Flash info : player @ID has placed a mine --------------
+			[] sayMinePlaced(ID) then
+				%TODO
+				ReturnedState = State
 			%------- DEBUG : print yourself ------------------------
 			[] print then
 				{Browse PlayerID#State}
