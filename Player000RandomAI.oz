@@ -647,7 +647,7 @@ in
 			of Mine|Remainder then
 				%Choose to explode this mine (one-in-two chances)
 				if (({OS.rand} mod 2)==1) then Mine#{Append MinesAccumulator Remainder}
-				else {Loop Remainder {Append MinesAccumulator Mine}}
+				else {Loop Remainder {Append MinesAccumulator [Mine]}}
 				end
 			[] nil then %No mine has exploded
 				null#MinesAccumulator
