@@ -185,7 +185,7 @@ in
 		end
 	end
 
-	% @BroadcastDamageTaken : broadcast the damge taken information
+	% @BroadcastDamageTaken : broadcast the damage taken information
 	proc {BroadcastDamageTaken ID Damage LifeLeft}
 		for P in PlayersPorts do
 			{Send P sayDamageTaken(ID Damage LifeLeft)}
@@ -230,7 +230,7 @@ in
 	fun {DroneActivated ID PID Drone}
 		for P in PlayersPorts do
 			local IDRcv Answer in
-				{Send P sayPassingDrone(Drone ID Answer)}
+				{Send P sayPassingDrone(Drone IDRcv Answer)}
 				{Send PID sayAnswerDrone(Drone IDRcv Answer)}
 			end
 		end
