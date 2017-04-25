@@ -268,6 +268,32 @@ in
 						ReturnedState = State
 					end
 				end
+			%------- A drone is asking if this player is on a certain row/column ---------
+			[] sayPassingDrone(Drone ?ID ?Answer) then
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					ID = PlayerID
+					case LocationState
+					of stateLocation(pos:PlayerPosition dir:_ visited:_) then
+						case Drone
+						of drone(row:Row) then
+							if PlayerPosition.x == Row then Answer = true
+							else Answer = false
+							end
+						[] drone(column:Column) then
+							if PlayerPosition.x == Column then Answer = true
+							else Answer = false
+							end
+						else %something went wrong
+							{ERR 'Drone has an invalid format'#Drone}
+						end
+					else %something went wrong
+						{ERR 'LocationState has an invalid format'#LocationState}
+					end
+					ReturnedState = State
+				end
 			%------- DEBUG : print yourself ------------------------
 			[] print then
 				{Browse PlayerID#State}
@@ -531,7 +557,7 @@ in
 			of Mine|Remainder then
 				%Choose to explode this mine (one-in-two chances)
 				if {OS.rand} mod 2 then Mine#{Append MinesAccumulator Remainder}
-				else {Loop Remainder {Append MinesAccumulator Mine}}
+				else {Loop Remainder {Append MinesAccumulator Mine|nil}}
 				end
 			[] nil then %No mine has exploded
 				null#MinesAccumulator
