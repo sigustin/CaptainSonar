@@ -160,6 +160,7 @@ in
 			for P in PlayersPorts do
 				{Send P sayDeath(ID)}
 			end
+			{Send PortWindow removePlayer(ID)}
 			{BroadcastKilled T}
 		[] nil then
 			skip
@@ -348,6 +349,7 @@ in
 							[] drone(column:Y) then
 								Killed = {DroneActivated ID PlayerPort KindFire}
 							[] mine(pt(x:X y:Y)) then
+								{Send PortWindow putMine(ID pt(x:X y:Y))}
 								Killed = {MinePlaced ID}
 							end
 							{BroadcastKilled Killed}
@@ -362,6 +364,7 @@ in
 								%broadcast and receive informations, change alive list
 								Killed = {MineExploded ID Mine.1}
 								{BroadcastKilled Killed}
+								{Send PortWindow removeMine(ID Mine.1)}
 							end
 						end
 					end
