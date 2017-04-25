@@ -239,7 +239,7 @@ in
 
 	% @MinePlaced : A Mine has been placed broadcast information, return nil
 	fun {MinePlaced ID}
-		for P in PlayersPorts
+		for P in PlayersPorts do
 			{Send P sayMinePlaced(ID)}
 		end
 		nil
@@ -360,7 +360,7 @@ in
 								skip
 							else Killed in
 								%broadcast and receive informations, change alive list
-								Killed = {MineExploded ID Mine}
+								Killed = {MineExploded ID Mine.1}
 								{BroadcastKilled Killed}
 							end
 						end
@@ -534,6 +534,8 @@ in
 						Killed = {DroneActivated ID P KindFire}
 					[] drone(row:Y) then
 						Killed = {DroneActivated ID P KindFire}
+					[] mine(pt(x:X y:Y)) then
+						Killed = {MinePlaced ID}
 					end
 					{BroadcastKilled Killed}
 				end
@@ -547,7 +549,7 @@ in
 						skip
 					else Killed in
 						%broadcast and receive informations, change alive list
-						Killed = {MineExploded ID Mine}
+						Killed = {MineExploded ID Mine.1}
 						{BroadcastKilled Killed}
 					end
 				end

@@ -111,6 +111,7 @@ in
 	in
 		case State
 		of stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState) then
+			%{Browser.browse Msg}
 			case Msg
 			%---------- Initialize position -------------
 			of initPosition(?ID ?Position) then
@@ -640,7 +641,7 @@ in
 			case MinesPlaced
 			of Mine|Remainder then
 				%Choose to explode this mine (one-in-two chances)
-				if {OS.rand} mod 2 then Mine#{Append MinesAccumulator Remainder}
+				if (({OS.rand} mod 2)==1) then Mine#{Append MinesAccumulator Remainder}
 				else {Loop Remainder {Append MinesAccumulator Mine}}
 				end
 			[] nil then %No mine has exploded
