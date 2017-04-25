@@ -204,8 +204,8 @@ in
 						%return
 						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 					else
-						KindFire = null%Simon demande de vérification sur ce changement (KindFire pas bind sans ce changement)
-						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState)%vérif
+						KindFire = null
+						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState)
 					end
 				end
 			%-------- Choose to explode a placed mine -----------------

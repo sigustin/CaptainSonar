@@ -435,7 +435,13 @@ in
 	%              Returns the created mine (with the position of setup as a parameter)
 	% TODO for the moment this is random
 	fun {PlaceMine PlayerPosition TrackingInfo}
-		todo
+		RandomPosition = pt(x:{OS.rand} mod Input.nRow)+1 y:{OS.rand} mod Input.nColumn)+1}
+		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
+	in
+		% Check the distances
+		if DistanceFromPlayer >= Input.minDistanceMins andthen DistanceFromPlayer =< Input.maxDistanceMine then mine(RandomPosition)
+		else {PlaceMine PlayerPosition}
+		end
 	end
 	
 	%============== Useful procedures and functions ================
