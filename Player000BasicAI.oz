@@ -40,6 +40,9 @@ define
 	
 	ExplodeMine
 	
+	ExplosionHappened
+	ComputeDamage
+	
 	PositionIsValid
 	
 	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 sonarsLoading:0)
@@ -235,6 +238,21 @@ in
 			[] sayMinePlaced(ID) then
 				%TODO
 				ReturnedState = State
+			%-------- A missile exploded (is this player damaged?) ---------------
+			[] sayMissileExplode(ID Position ?Message) then
+				if PlayerLife =< 0 then
+					Msg = sayDeath(PlayerID)
+					ReturnedState = State
+				else
+					case {ExplosionHappened Position PlayerID State}
+					of Msg#NewState then
+						Message = Msg
+						ReturnedState = NewState
+					else %something went wrong
+						{ERR 'ExplosionHappened did not return a record correctly formatted'}
+						ReturnedState = State
+					end
+				end
 			%------- DEBUG : print yourself ------------------------
 			[] print then
 				{Browse PlayerID#State}
@@ -518,6 +536,47 @@ in
 			{ERR 'WeaponsState has an invalid format'#WeaponsState}
 			null#WeaponsState %because we have to return something
 		end
+	end
+	
+	%========== Proceudres about taking damages =================
+	% @ExplosiongHappened : Computes the message to send to the game controller when something explode
+	%                       at position @ExplodePosition and updates the player's state
+	fun {ExplosionHappened ExplosionPosition PlayerID State}
+		Message
+		UpdatedState
+	in
+		case {ComputeDamage ExplosionPosition State}
+		of DamageTaken#NewState then
+			if DamageTaken == 0 then
+				% No damage => no cchanges
+				Message = null
+				UpdatedState = State
+			else
+				% Damage taken => change state and send message
+				case NewState
+				of stateBasicAI(life:CurrentLife locationState:LocationState weaponsState:WeaponsState tracking:TrackingInfo) then
+					if CurrentLife =< 0 then %dead
+						Message = sayDeath(PlayerID)
+						UpdatedState = stateBasicAI(life:0 locationState:LocationState weaponsState:WeaponsState tracking:TrackingInfo)
+					else
+						Message = sayDamageTaken(PlayerID DamageTaken CurrentLife)
+						UpdatedState = stateBasicAI(life:CurrentLife locationState:LocationState weaponsState:WeaponsState tracking:TrackingInfo)
+					end
+				else %something went wrong
+					{ERR 'ComputeDamage returned a state with invalid format'#NewState}
+					%don't take damges
+					Message = null
+					UpdatedState = State
+				end
+			end
+		else %something went wrong
+			{ERR 'ComputeDamage returned somthing with an invalid syntax'}
+			%don't take damages
+			Message = null
+			UpdatedState = State
+		end
+		%return
+		Message#UpdatedState
 	end
 	
 	%============== Useful procedures and functions ================
