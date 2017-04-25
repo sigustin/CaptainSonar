@@ -43,6 +43,8 @@ define
 	ExplosionHappened
 	ComputeDamage
 	
+	FakeCoordForSonars
+	
 	PositionIsValid
 	
 	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 sonarsLoading:0)
@@ -292,6 +294,21 @@ in
 					else %something went wrong
 						{ERR 'LocationState has an invalid format'#LocationState}
 					end
+					ReturnedState = State
+				end
+			%------ This player's drone came back with answers ------------
+			[] sayAnswerDrone(Drone ID Answer) then
+				%TODO
+				ReturnedState = State
+			%----- A sonar is detectin => this player gives coordinates (one right, one wrong) ------
+			[] sayPassingSonar(?ID ?Answer) then
+				if PlayerLife =< 0 then
+					ID = null
+					ReturnedState = State
+				else
+					ID = PlayerID
+					Answer = {FakeCoordForSonars State}
+					
 					ReturnedState = State
 				end
 			%------- DEBUG : print yourself ------------------------
@@ -618,6 +635,30 @@ in
 		end
 		%return
 		Message#UpdatedState
+	end
+	
+	%======== Procedures about other players' detections ================
+	% @FakeCoordForSonars : Generates coordinates that will be sent
+	%                       to another player's sonar detection
+	%                       These coordinates will have one coordinate right
+	%                       and the other wrong (randomly chosen)
+	fun {FakeCoordForSonars State}
+		case State
+		of stateBasicAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ visited:_) weaponsState:_ tracking:_) then
+			%Choose which coordinate to fake
+			case  {OS.rand} mod 2
+			of 0 then
+				pt(x:PlayerPosition.x y:({OS.rand} mod Input.nColumn)+1)
+			[] 1 then
+				pt(x:({OS.rand} mod Input.nRow)+1 y:PlayerPosition.y)
+			else %something went wrong
+				{ERR 'Randomized out-of-bounds'}
+				pt(x:({OS.rand} mod Input.nRow)+1 y:PlayerPosition.y) %because we have to return something valid
+			end
+		else %something went wrong
+			{ERR 'PlayerState has an invalid format'#State}
+			pt(x:0 y:0) %because we have to return somthing with a valid format
+		end
 	end
 	
 	%============== Useful procedures and functions ================
