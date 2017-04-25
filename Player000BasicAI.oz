@@ -170,7 +170,7 @@ in
 					ID = null
 					ReturnedState = State
 				else
-					FiredWeaponType = {ChooseWhichToFire WeaponState TrackingInfo}
+					FiredWeaponType = {ChooseWhichToFire WeaponsState TrackingInfo}
 					NewWeaponsState
 				in
 					ID = PlayerID
@@ -178,7 +178,7 @@ in
 						% Fire a weapon of type @FiredWeaponType
 						case LocationState
 						of stateLocation(pos:PlayerPosition dir:_ visited:_) then
-							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType WeaponsState TrackingInfo}
+							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
 						else %something went wrong
 							{ERR 'LocationState has an invalid format'#LocationState}
 						end
@@ -383,24 +383,31 @@ in
 	%               the new weapons's state
 	fun {FireWeapon WeaponType PlayerState}
 		case PlayerState
-		of stateBacisAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ visited:_) weaponsState:stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) tracking:TrackingInfo) then
-			% Check the distances
-			case WeaponType
-			of mine then
-				NewMine = {PlaceMine PlayerPosition TrackingInfo}
-			in
-				NewMine#{UpdateWeaponsState WeaponsState NewMine}
-			[] missile then
-				{FireMissile PlayerPosition TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
-			[] drone then
-				{FireDrone TrackingInfo}#{UpdateWeaponState WeaponsState WeaponType}
-			[] sonar then
-				{FireSonar TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+		of stateBacisAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ visited:_) weaponsState:WeaponsState tracking:TrackingInfo) then
+			case WeaponsState
+			of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
+				% Check the distances
+				case WeaponType
+				of mine then
+					local
+						NewMine = {PlaceMine PlayerPosition TrackingInfo}
+					in
+						NewMine#{UpdateWeaponsState WeaponsState NewMine}
+					end
+				[] missile then
+					{FireMissile PlayerPosition TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+				[] drone then
+					{FireDrone TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+				[] sonar then
+					{FireSonar TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+				else null#WeaponsState
+				end
 			else null#WeaponsState
 			end
-		end %something went wrong
+		else %something went wrong
 			{ERR 'PlayerState has an invalid format'#PlayerState}
-			null#WeaponsState %because we have to return something
+			null %because we have to return something
+		end
 	end
 	
 	% @UpdateWeaponsState : Returns the updated weapons's state after firing
@@ -408,9 +415,9 @@ in
 	%                       (for a mine it is the mine fired)
 	fun {UpdateWeaponsState WeaponsState WeaponFired}
 		case WeaponsState
-		of stateWeapons(miensLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronaesLoading sonarsLoading:SonarsLoading) then
+		of stateWeapons(miensLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
 			case WeaponFired
-			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:Weapon|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
 			[] missile then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading-Input.missile dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
 			[] drone then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone sonarsLoading:SonarsLoading)
 			[] sonar then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading-Input.sonar)
@@ -428,7 +435,7 @@ in
 	%              Returns the created mine (with the position of setup as a parameter)
 	% TODO for the moment this is random
 	fun {PlaceMine PlayerPosition TrackingInfo}
-		
+		todo
 	end
 	
 	%============== Useful procedures and functions ================

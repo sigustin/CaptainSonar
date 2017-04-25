@@ -560,7 +560,7 @@ in
 			end
 		else %something went wrong
 			{ERR 'PlayerState has an invalid format'#PlayerState}
-			null#WeaponsState %because we have to return something
+			null %because we have to return something
 		end
 	end
 	
