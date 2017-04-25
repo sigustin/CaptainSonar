@@ -384,24 +384,17 @@ in
 	fun {FireWeapon WeaponType PlayerState}
 		case PlayerState
 		of stateBacisAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ visited:_) weaponsState:WeaponsState tracking:TrackingInfo) then
-			case WeaponsState
-			of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
-				% Check the distances
-				case WeaponType
-				of mine then
-					local
-						NewMine = {PlaceMine PlayerPosition TrackingInfo}
-					in
-						NewMine#{UpdateWeaponsState WeaponsState NewMine}
-					end
-				[] missile then
-					{FireMissile PlayerPosition TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
-				[] drone then
-					{FireDrone TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
-				[] sonar then
-					{FireSonar TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
-				else null#WeaponsState
-				end
+			case WeaponType
+			of mine then
+				NewMine = {PlaceMine PlayerPosition TrackingInfo}
+			in
+				NewMine#{UpdateWeaponsState WeaponsState NewMine}
+			[] missile then
+				{FireMissile PlayerPosition TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+			[] drone then
+				{FireDrone TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+			[] sonar then
+				{FireSonar TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
 			else null#WeaponsState
 			end
 		else %something went wrong
@@ -440,7 +433,7 @@ in
 	in
 		% Check the distances
 		if DistanceFromPlayer >= Input.minDistanceMins andthen DistanceFromPlayer =< Input.maxDistanceMine then mine(RandomPosition)
-		else {PlaceMine PlayerPosition}
+		else {PlaceMine PlayerPosition TrackingInfo}
 		end
 	end
 	
