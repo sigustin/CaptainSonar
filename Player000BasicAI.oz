@@ -773,7 +773,10 @@ in
 								%return
 								{Append {Append Acc Track|nil} TrackingInfo}
 							end
-						else %something went wrong %TODO what about surface?
+						elseif Direction == surface then
+							%return
+							{Append {Append Acc trackingInfo(id:ID surface:true x:X y:Y)} TrackingInfo}
+						else %something went wrong
 							{ERR 'Direction given is invalid'#Direction}
 							{Append {Append Acc Track|nil} TrackingInfo}
 						end
