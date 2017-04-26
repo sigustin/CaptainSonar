@@ -29,6 +29,7 @@ define
 	SquareNotVisited
 	
 	LoadWeapon
+	ChooseWhichToLoad
 	
 	ChooseWhichToFire
 	FireWeapon
@@ -185,7 +186,7 @@ in
 				in
 					ID = PlayerID
 					%Load one of the weapons's loading charge
-					KindItem#NewWeaponsState = {LoadWeapon WeaponsState}
+					KindItem#NewWeaponsState = {LoadWeapon WeaponsState TrackingInfo}
 					
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 				end
@@ -491,36 +492,36 @@ in
 	%============== Procedures regarding weapons ===================
 	% @LoadWeapon : Add a loading charge to one type of weapon
 	%               Returns the new weapons state and a weapon type if a new weapon is available
-	fun {LoadWeapon WeaponsState}
+	fun {LoadWeapon WeaponsState TrackingInfo}
 		case WeaponsState
 		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
-			%TODO for the moment random
 			NewWeaponsState
 			NewWeaponAvailable
+			WeaponToLoad = {ChooseWhichToLoad TrackingInfo}
 		in
-			case {OS.rand} mod 4
-			of 0 then
+			case WeaponToLoad
+			of mine then
 				NewWeaponsState = stateWeapons(minesLoading:MinesLoading+1 minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 				if (MinesLoading+1) mod Input.mine == 0 then
 					NewWeaponAvailable = mine
 				else
 					NewWeaponAvailable = null
 				end
-			[] 1 then
+			[] missile then
 				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading+1 dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 				if (MissilesLoading+1) mod Input.missile == 0 then
 					NewWeaponAvailable = missile
 				else
 					NewWeaponAvailable = null
 				end
-			[] 2 then
+			[] drone then
 				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading+1 lastDroneFired:Drone sonarsLoading:SonarsLoading)
 				if (DronesLoading+1) mod Input.drone then
 					NewWeaponAvailable = drone
 				else
 					NewWeaponAvailable = null
 				end
-			[] 3 then
+			[] sonar then
 				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading+1)
 				if (SonarsLoading+1) mod Input.sonar then
 					NewWeaponAvailable = sonar
@@ -528,7 +529,7 @@ in
 					NewWeaponAvailable = null
 				end
 			else %something went wrong
-				{ERR 'Randomized out-of-bound'}
+				{ERR 'WeaponToLoad has an invalid format'#WeaponToLoad}
 				NewWeaponAvailable = null %because we have to return something
 				NewWeaponsState = WeaponsState %idem
 			end
@@ -539,6 +540,16 @@ in
 			{ERR 'WeaponsState has an invalid format'#WeaponsState}
 			null#WeaponsState %because we have to return something
 		end
+	end
+	
+	% @ChooseWhichToLoad : Chooses which type of weapon to load on basis of the tracking information
+	fun {ChooseWhichToLoad TrackingInfo}
+		if TrackingInfo == nil then
+			sonar
+		else
+			drone
+		end
+		%TODO fire when some player is found
 	end
 	
 	% @ChooseWhichToFire : If a weapon is available and @this wants to shoot
