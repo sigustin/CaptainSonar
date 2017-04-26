@@ -547,7 +547,23 @@ in
 		if TrackingInfo == nil then
 			sonar
 		else
-			drone
+			fun {Loop TrackingInfo}
+				case TrackingInfo
+				of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
+					case X#Y
+					of certain(_)#certain(_) then
+						missile
+					else
+						{Loop Remainder}
+					end
+				[] nil then drone
+				else %something went wrong
+					{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+					drone
+				end
+			end
+		in
+			{Loop TrackingInfo}
 		end
 		%TODO fire when some player is found
 	end
@@ -579,7 +595,7 @@ in
 	%               the new weapons's state
 	fun {FireWeapon WeaponType PlayerState}
 		case PlayerState
-		of stateBacisAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ visited:_) weaponsState:WeaponsState tracking:TrackingInfo) then
+		of stateBasicAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ visited:_) weaponsState:WeaponsState tracking:TrackingInfo) then
 			case WeaponType
 			of mine then
 				NewMine = {PlaceMine PlayerPosition TrackingInfo}
