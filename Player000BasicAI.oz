@@ -377,7 +377,7 @@ in
 				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 			%-------- Flash info : player @ID has taken @Damage damages ------------
 			[] sayDamageTaken(ID Damage LifeLeft) then
-				%TODO
+				%Ignore this
 				ReturnedState = State
 			%------- DEBUG : print yourself ------------------------
 			[] print then
@@ -786,7 +786,7 @@ in
 			of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
 				case X#Y
 				of certain(_)#certain(_) then
-					missile
+					missile %TODO choose between missile and mine based on a heuristic
 				else
 					{Loop Remainder}
 				end
