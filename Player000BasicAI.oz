@@ -904,20 +904,20 @@ in
 				null
 			elseif DistanceExplosionTarget == 0 then
 				% Target is reachable => place the mine
-				missile(FiringPosition)
+				mine(FiringPosition)
 			else %DistanceExplosionTarget == 1
 				% Target is reachable but may be more damaged if we fire on the next turn
 				% => place it only if we will have another mine ready on the next turn
 				case WeaponsState
 				of stateWeapons(minesLoading:Loading minesPlaced:_ missilesLoading:_ dronesLoading:_ sonarsLoading:_) then
 					if (Loading+1) div Input.mine then
-						missile(FiringPosition)
+						mine(FiringPosition)
 					else %wait to be closer to place the mine
 						null
 					end
 				else %something went wrong
 					{ERR 'WeaponsState has an invalid format'#WeaponsState}
-					missile(FiringPosition)
+					mine(FiringPosition)
 				end
 			end
 		end
@@ -1115,16 +1115,44 @@ in
 	end
 	
 	% @ExplodeMine : Checks if there is a mine in the list of mines placed (contained in @WeaponsState)
-	%                Chooses if one of those mine should explode and which one.
+	%                Chooses if one of those mine should explode and which one
+	%                (if we know another player that is close enough)
 	%                Returns the mine exploding and the new weapons' state (with the new list of mines remaining)
-	% TODO for the moment this is random
 	fun {ExplodeMine WeaponsState TrackingInfo}
-		fun {Loop MinesPlaced MinesAccumulator}
+		% The next function returns true if we know at least one other player that is close to @Mine
+		fun {MineIsCloseToATarget TrackingInfo MineToTest}
+			case TrackingInfo
+			of trackingInfo(id:_ surface:_ x:XInfo y:YInfo)|Remainder then
+				case XInfo#YInfo
+				of certain(X)#certain(Y) then
+					case MineToTest
+					of mine(Pos) then
+						Distance = {Abs (X-Pos.x)}+{Abs (Y-Pos.y)}
+					in
+						if Distance < 2 then true
+						else {MineIsCloseToATarget Remainder MineToTest}
+						end
+					else %something went wrong
+						{ERR 'MineToTest has an invalid format'#MineToTest}
+						false
+					end
+				else %we're not certain of the position of this player
+					{MineIsCloseToATarget Remainder MineToTest}
+				end
+			[] nil then %we don't know any player close enough to this mine
+				false
+			else %something went wrong
+				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				false
+			end
+		end
+		
+		fun {ChooseMineLoop MinesPlaced MinesAccumulator}
 			case MinesPlaced
 			of Mine|Remainder then
-				%Choose to explode this mine (one-in-two chances)
-				if {OS.rand} mod 2 then Mine#{Append MinesAccumulator Remainder}
-				else {Loop Remainder {Append MinesAccumulator Mine|nil}}
+				%Choose to explode this mine
+				if {MineIsCloseToATarget TrackingInfo Mine} then Mine#{Append MinesAccumulator Remainder}
+				else {ChooseMineLoop Remainder {Append MinesAccumulator Mine|nil}}
 				end
 			[] nil then %No mine has exploded
 				null#MinesAccumulator
@@ -1136,7 +1164,7 @@ in
 	in
 		case WeaponsState
 		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
-			case {Loop MinesPlaced nil}
+			case {ChooseMineLoop MinesPlaced nil}
 			of Mine#RemainingMines then
 				Mine#stateWeapons(minesLoading:MinesLoading minesPlaced:RemainingMines missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			end
