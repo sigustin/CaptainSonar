@@ -53,6 +53,7 @@ define
 	PlayerMadeSurface
 	DroneAnswered
 	SonarAnswered
+	PlayerDead
 	
 	PositionIsValid
 	CoordIsOnGrid
@@ -368,9 +369,10 @@ in
 				end
 			%-------- Flash info : player @ID is dead -----------------
 			[] sayDeath(ID) then
-				%TODO
-				ReturnedState = State
-			%-------- Flash info : player @ID hastaken @Damage damages ------------
+				UpdatedTrackingInfo = {PlayerDead ID TrackingInfo}
+			in
+				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+			%-------- Flash info : player @ID has taken @Damage damages ------------
 			[] sayDamageTaken(ID Damage LifeLeft) then
 				%TODO
 				ReturnedState = State
@@ -1212,6 +1214,31 @@ in
 		end
 	in
 		{Loop TrackingInfo ID Answer nil}
+	end
+	
+	% @PlayerDead : Player @ID id dead
+	%               Removes the info about it in the tracking info and
+	%               returns the updated tracking info
+	fun {PlayerDead ID TrackingInfo}
+		fun {Loop ID TrackingInfo Acc}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:CurrentID surface:_ x:_ y:_) then
+					if CurrentID == ID then %remove this track
+						{Loop ID Remainder Acc}
+					else
+						{Loop ID Remainder {Append Acc Track|nil}}
+					end
+				else %something went wrong
+					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{Loop ID Remainder {Append Acc Track|nil}}
+				end
+			[] nil then Acc
+			end
+		end
+	in
+		{Loop ID TrackingInfo nil}
 	end
 	
 	%============== Useful procedures and functions ================
