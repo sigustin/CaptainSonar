@@ -16,16 +16,20 @@ define
 	PlayersPositions %List of all the players positions
 	PlayersAtSurface %List of lists of the surface state of each player (true/false)
 	PlayersAtSurfaceWaitingTurn %List of lists of number of turn the players as to wait to play again
-	NTurnMax = 30 %Maximal number of turn for the game (set high for normal game)
+	NTurnMax = 100 %Maximal number of turn for the game (set high for normal game)
 	PlayersAlive % List of lists does the players are alive
+	LifeStatePort % port-object to store life state of players unused
 
 	%========== Functions and procedures =====================
+	CreatePortObject%unused
 	CreatePlayers
 	GenerateColor %unused
+	LifeTreatStream
 	SetUpAndShow
 	CreatePlayersAtSurface
 	CreatePlayersAtSurfaceWaitingTurn
 	CreatePlayersAlive
+	CreateLifeSte
 	NumberAlive
 	BroadcastDirection
 	BroadcastItemCharged
@@ -57,6 +61,22 @@ define
 in
 
 	%======== Functions and procedures definitions ============
+	% @CreatePortObject : F treat the stream
+	fun {CreatePortObject F InitialState}
+		P
+		S
+		proc {LoopStream S State}
+			case S
+			of Msg|S2 then
+				{LoopStream S2 {F State Msg}}
+			end
+		end
+	in
+		{NewPort S P}
+		thread {LoopStream S InitialState} end
+		P
+	end
+
 	% @CreatePlayers : runs a loop that creates @Input.nbPlayer players (with a color and an ID)
 	%                  and puts them in @PortsPlayer (with IDs in descending order)
 	proc {CreatePlayers}
@@ -160,6 +180,7 @@ in
 			for P in PlayersPorts do
 				{Send P sayDeath(ID)}
 			end
+			{Send PortWindow lifeUpdate(ID 0)}
 			{Send PortWindow removePlayer(ID)}
 			{BroadcastKilled T}
 		[] nil then
@@ -191,6 +212,7 @@ in
 		for P in PlayersPorts do
 			{Send P sayDamageTaken(ID Damage LifeLeft)}
 		end
+		{Send PortWindow lifeUpdate(ID LifeLeft)}
 	end
 
 	% @MissileExplode : A missile has exploded broadcast the information broadcast the damage taken, return the Killed
@@ -481,7 +503,7 @@ in
 			   PlayersAtSurfaceWaitingTurn.2 = NewPlayersAtSurfaceWaitingTurn|_
 
 			   %delay to see whats happening
-			   {Delay 1000}
+			   {Delay 1}
 
 			   % next turn
 		   		{TurnByTurn NTurn+1 PlayersAtSurface.2 PlayersAtSurfaceWaitingTurn.2}
