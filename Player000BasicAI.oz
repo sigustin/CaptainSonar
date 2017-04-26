@@ -29,6 +29,7 @@ define
 	SquareNotVisited
 	GetTarget
 	MoveTowards
+	MoveAway
 	PositionGetsYouCloser
 	
 	LoadWeapon
@@ -427,10 +428,18 @@ in
 				%Never go to the surface if another square is available
 				else
 					Target = {GetTarget TrackingInfo}
+					DistancePlayerTarget = {Abs (Position.x-Target.x)}+{Abs (Position.y-Target.y)}
 				in
-					if Target \= null then %Go to target
-						NewPosition#DirectionTravelled = {MoveTowards Position VisitedSquares Target}
+					if Target \= null then %Go to target but not too close (in case of explosions)
+						NewPosition
+						DirectionTravelled
 					in
+						if DistancePlayerTarget > 2 then
+							NewPosition#DirectionTravelled = {MoveTowards Position VisitedSquares Target}
+						else
+							NewPosition#DirectionTravelled = {MoveAway Position VisitedSquares Target}
+						end
+						
 						if NewPosition == null orelse DirectionTravelled == null then %something went wrong
 							%return
 							LocationState
@@ -589,6 +598,66 @@ in
 						end
 					else
 						{MoveTowards Position VisitedSquares Target}
+					end
+				end
+			end
+		else %something went wrong
+			{ERR 'Target or Position has an invalid format'#Target#Position}
+			null#null
+		end
+	end
+	
+	% @MoveAway : Returns a valid position that allows @this to 
+	%             move away from @Target (in most cases)
+	%             and the direction it makes
+	fun {MoveAway Position VisitedSquares Target}
+		case Position#Target
+		of pt(x:X y:Y)#pt(x:XTarget y:YTarget) then
+			NewPosition
+			NewDirection
+		in
+			% Randomly choose a direction to follow and check if it is valid and
+			% gets you further from the target.
+			% One-in-ten chance of moving there anyway (to avoid looping forever),
+			% otherwise call recursively this function.
+			case {OS.rand} mod 4
+			of 0 then %south
+				NewDirection = south
+				NewPosition = pt(x:X+1 y:Y)
+			[] 1 then %north
+				NewDirection = north
+				NewPosition = pt(x:X-1 y:Y)
+			[] 2 then %west
+				NewDirection = west
+				NewPosition = pt(x:X y:Y+1)
+			[] 3 then %east
+				NewDirection = east
+				NewPosition = pt(x:X y:Y-1)
+			else %something went wrong
+				{ERR 'Randomized out-of-bound'}
+				NewPosition = null
+			end
+			
+			if NewPosition == null then
+				{MoveAway Position VisitedSquares Target}
+			else
+				if {Not {PositionGetsYouCloser Position NewPosition Target}} then
+					if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition VisitedSquares} then
+						%return
+						NewPosition#NewDirection
+					else
+						{MoveAway Position VisitedSquares Target}
+					end
+				else
+					if {OS.rand} mod 10 == 0 then %use it anyway
+						if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition VisitedSquares} then
+							%return
+							NewPosition#NewDirection
+						else
+							{MoveAway Position VisitedSquares Target}
+						end
+					else
+						{MoveAway Position VisitedSquares Target}
 					end
 				end
 			end
