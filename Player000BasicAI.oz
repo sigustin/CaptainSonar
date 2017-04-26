@@ -777,6 +777,8 @@ in
 							{ERR 'Direction given is invalid'#Direction}
 							{Append {Append Acc Track|nil} TrackingInfo}
 						end
+					else %Not the current player
+						{Loop Remainder ID Direction {Append Acc Track|nil}}
 					end
 				else %something went wrong
 					{ERR 'An element of TrackingInfo has an invalid format'#Track}
