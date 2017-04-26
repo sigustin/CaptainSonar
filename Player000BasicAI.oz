@@ -326,11 +326,14 @@ in
 						case Drone
 						of drone(column:X) then
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
+							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row:Y) then
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
+							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+						else %something went wrong
+							{ERR 'Drone has an invalid format'#Drone}
+							ReturnedState = State
 						end
-						%TODO put an else
-						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 					else %something went wrong
 						{ERR 'WeaponsState has an invalid format'#WeaponsState}
 						ReturnedState = State
