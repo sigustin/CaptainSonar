@@ -765,9 +765,13 @@ in
 		of stateBasicAI(life:_ locationState:stateLocation(pos:PlayerPosition dir:_ visited:_) weaponsState:WeaponsState tracking:TrackingInfo) then
 			case WeaponType
 			of mine then
-				NewMine = {PlaceMine PlayerPosition TrackingInfo}
+				NewMine = {PlaceMine PlayerPosition WeaponsState TrackingInfo}
 			in
-				NewMine#{UpdateWeaponsState WeaponsState NewMine}
+				if NewMine == null then
+					null#WeaponsState
+				else
+					NewMine#{UpdateWeaponsState WeaponsState NewMine}
+				end
 			[] missile then
 				MissileFired = {FireMissile PlayerPosition WeaponsState TrackingInfo}
 			in
@@ -810,18 +814,43 @@ in
 		end
 	end
 	
-	% @PlaceMine : Creates a mine at a random position on the grid
+	% @PlaceMine : Creates a mine at close enough to the target to damage it
 	%              but in the range from the player where it is allowed to place mines
-	%              and if it know where another player is
+	%              and away enough to not damage the player
 	%              Returns the created mine (with the position of setup as a parameter)
-	% TODO for the moment this is random
-	fun {PlaceMine PlayerPosition TrackingInfo}
-		RandomPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
-		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
+	fun {PlaceMine PlayerPosition WeaponsState TrackingInfo}
+		Target = {GetTarget TrackingInfo}
+		DistancePlayerTarget = {Abs (PlayerPosition.x-Target.x)}+{Abs (PlayerPosition.y-Target.y)}
 	in
-		% Check the distances
-		if DistanceFromPlayer >= Input.minDistanceMins andthen DistanceFromPlayer =< Input.maxDistanceMine then mine(RandomPosition)
-		else {PlaceMine PlayerPosition TrackingInfo}
+		% If this player is too close to the target, don't fire
+		if DistancePlayerTarget < 2 then
+			%return
+			null
+		else
+			%Find the square to place the mine on and that will damage the target most heavily
+			DistanceExplosionTarget#FiringPosition = {GetReachableExplosionPosition PlayerPosition Target mine}
+		in
+			if DistanceExplosionTarget == much orelse FiringPosition == null then
+				% Too far => don't place the mine
+				null
+			elseif DistanceExplosionTarget == 0 then
+				% Target is reachable => place the mine
+				missile(FiringPosition)
+			else %DistanceExplosionTarget == 1
+				% Target is reachable but may be more damaged if we fire on the next turn
+				% => place it only if we will have another mine ready on the next turn
+				case WeaponsState
+				of stateWeapons(minesLoading:Loading minesPlaced:_ missilesLoading:_ dronesLoading:_ sonarsLoading:_) then
+					if (Loading+1) div Input.mine then
+						missile(FiringPosition)
+					else %wait to be closer to place the mine
+						null
+					end
+				else %something went wrong
+					{ERR 'WeaponsState has an invalid format'#WeaponsState}
+					missile(FiringPosition)
+				end
+			end
 		end
 	end
 	
