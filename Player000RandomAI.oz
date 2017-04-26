@@ -260,7 +260,7 @@ in
 			%------------- A missile exploded (is this player damaged?) -----------------
 			[] sayMissileExplode(ID Position ?Message) then
 				if PlayerLife =< 0 then
-					Msg = sayDeath(PlayerID)
+					Message = sayDeath(PlayerID)
 					ReturnedState = State
 				else
 					case {ExplosionHappened Position PlayerID State}
@@ -275,7 +275,7 @@ in
 			%--------- A mine exploded (is this player damaged?) -----------------
 			[] sayMineExplode(ID Position ?Message) then
 				if PlayerLife =< 0 then
-					Msg = sayDeath(PlayerID)
+					Message = sayDeath(PlayerID)
 					ReturnedState = State
 				else
 					case {ExplosionHappened Position PlayerID State}

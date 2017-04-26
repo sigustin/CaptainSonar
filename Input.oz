@@ -46,7 +46,7 @@ in
 
 %%%% Style of game %%%%
    
-   IsTurnByTurn = true
+   IsTurnByTurn = false
 
 %%%% Description of the map %%%%
    
@@ -73,8 +73,8 @@ in
 
 %%%% Thinking parameters (only in simultaneous) %%%%
    
-   ThinkMin = 500
-   ThinkMax = 3000
+   ThinkMin = 1%500
+   ThinkMax = 2%3000
 
 %%%% Surface time/turns %%%%
    
