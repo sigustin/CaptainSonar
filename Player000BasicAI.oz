@@ -318,14 +318,26 @@ in
 				end
 			%------ This player's drone came back with answers ------------
 			[] sayAnswerDrone(Drone ID Answer) then
-				%TODO Remember what was the last drone that was used (which row/column) => Answer == true/false
-				%if ID \= PlayerID then
-				%	UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID Answer}
-				%in
-				%	ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
-				%else
+				if ID \= PlayerID andthen Answer then %Not @this and player @Id was detected
+					UpdatedTrackingInfo
+				in
+					case WeaponsState
+					of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
+						case Drone
+						of drone(column:X) then
+							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
+						[] drone(row:Y) then
+							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
+						end
+						%TODO put an else
+						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+					else %something went wrong
+						{ERR 'WeaponsState has an invalid format'#WeaponsState}
+						ReturnedState = State
+					end
+				else
 					ReturnedState = State
-				%end
+				end
 			%----- A sonar is detecting => this player gives coordinates (one right, one wrong) ------
 			[] sayPassingSonar(?ID ?Answer) then
 				if PlayerLife =< 0 then
@@ -676,7 +688,7 @@ in
 		end
 	end
 	
-	%========== Proceudres about taking damages =================
+	%========== Procedures about taking damages =================
 	% @ExplosiongHappened : Computes the message to send to the game controller when something explode
 	%                       at position @ExplodePosition and updates the player's state
 	fun {ExplosionHappened ExplosionPosition PlayerID State}
