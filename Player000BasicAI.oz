@@ -39,6 +39,8 @@ define
 	UpdateWeaponsState
 	PlaceMine
 	FireMissile
+	GetReachableExplosionPosition
+	SquareIsReachableForExplosion
 	FireDrone
 	FireSonar
 	
@@ -741,7 +743,7 @@ in
 			% If this type of weapon is available, fire it
 			of mine then if MinesLoading div Input.mine > 0 then mine else null end
 			[] missile then 
-				if MissilesLoading div Input.mine > 0 then missile
+				if MissilesLoading div Input.missile > 0 then missile
 				elseif (DronesLoading div Input.drone) > 0 then drone
 				else null
 				end
@@ -767,7 +769,13 @@ in
 			in
 				NewMine#{UpdateWeaponsState WeaponsState NewMine}
 			[] missile then
-				{FireMissile PlayerPosition TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+				MissileFired = {FireMissile PlayerPosition WeaponsState TrackingInfo}
+			in
+				if MissileFired == null then
+					null#WeaponsState
+				else
+					MissileFired#{UpdateWeaponsState WeaponsState WeaponType}
+				end
 			[] drone then
 				DroneFired = {FireDrone TrackingInfo}
 			in
@@ -817,17 +825,102 @@ in
 		end
 	end
 	
-	% @FireMissile : Creates a missile set to explode at a random position on the grid
+	% @FireMissile : Creates a missile set to explode close enough to the target player
 	%                but in the range from the player where it is allowed to make it explode
+	%                and away enough to not damage the player
 	%                Returns the created missile (with the position of explosion as a parameter)
-	% TODO for the moment this is random
-	fun {FireMissile PlayerPosition TrackingInfo}
-		RandomPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
-		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
+	%                or @null if it decided not to fire
+	fun {FireMissile PlayerPosition WeaponsState TrackingInfo}
+		Target = {GetTarget TrackingInfo}
+		DistancePlayerTarget = {Abs (PlayerPosition.x-Target.x)}+{Abs (PlayerPosition.y-Target.y)}
 	in
-		% Check the distances
-		if DistanceFromPlayer >= Input.minDistanceMissile andthen DistanceFromPlayer =< Input.maxDistanceMissile then missile(RandomPosition)
-		else {FireMissile PlayerPosition TrackingInfo}
+		% If this player is too close to the target, don't fire
+		if DistancePlayerTarget < 2 then
+			%return
+			null
+		else
+			%Find the square to fire the missile to and that will damage the target most heavily
+			DistanceExplosionTarget#FiringPosition = {GetReachableExplosionPosition PlayerPosition Target missile}
+		in
+			if DistanceExplosionTarget == much orelse FiringPosition == null then
+				% Too far => don't fire a missile
+				null
+			elseif DistanceExplosionTarget == 0 then
+				% Target is reachable => fire
+				missile(FiringPosition)
+			else %DistanceExplosionTarget == 1
+				% Target is reachable but may be more damaged if we fire on the next turn
+				% => fire only if we will have another missile ready on the next turn
+				case WeaponsState
+				of stateWeapons(minesLoading:_ minesPlaced:_ missilesLoading:Loading dronesLoading:_ sonarsLoading:_) then
+					if (Loading+1) div Input.missile then
+						missile(FiringPosition)
+					else %wait to be closer to fire
+						null
+					end
+				else %something went wrong
+					{ERR 'WeaponsState has an invalid format'#WeaponsState}
+					missile(FiringPosition)
+				end
+			end
+		end
+	end
+	
+	% @GetReachableExplosionPosition : Returns the square which this player can explode a weapon
+	%                                  to make the greatest damage possible to @Target
+	%                                  Returns the distance to @Target as well
+	%                                  If @Target is too far away, returns much#null
+	fun {GetReachableExplosionPosition PlayerPosition Target WeaponType}
+		if {SquareIsReachableForExplosion PlayerPosition Target WeaponType} then
+			0#Target
+		else
+			% compute the 2 positions that are a little closer to the player
+			CloserPositionAlongX
+			CloserPositionAlongY
+		in
+			if Target.x > PlayerPosition.x then
+				CloserPositionAlongX = pt(x:(Target.x)-1 y:Target.y)
+			elseif Target.x < PlayerPosition.x then
+				CloserPositionAlongX = pt(x:(Target.x)+1 y:Target.y)
+			else
+				CloserPositionAlongX = Target
+			end
+			
+			if Target.y > PlayerPosition.y then
+				CloserPositionAlongY = pt(x:Target.x y:(Target.y)-1)
+			elseif Target.y < PlayerPosition.y then
+				CloserPositionAlongY = pt(x:Target.x y:(Target.y)+1)
+			else
+				CloserPositionAlongY = Target
+			end
+			
+			if {SquareIsReachableForExplosion PlayerPosition CloserPositionAlongX WeaponType} then
+				1#CloserPositionAlongX
+			elseif {SquareIsReachableForExplosion PlayerPosition CloserPositionAlongY WeaponType} then
+				1#CloserPositionAlongY
+			else
+				much#null
+			end
+		end
+	end
+	
+	% @SquareIsReachableForExplosion : Returns @true if @Target can be reached from @PlayerPosition
+	%                                  when firing a weapon of type @WeaponType
+	fun {SquareIsReachableForExplosion PlayerPosition Target WeaponType}
+		Distance = {Abs (PlayerPosition.x-Target.x)}+{Abs (PlayerPosition.y-Target.y)}
+	in
+		case WeaponType
+		of mine then
+			if Distance >= Input.minDistanceMine andthen Distance =< Input.maxDistanceMine then true
+			else false
+			end
+		[] missile then
+			if Distance >= Input.minDistanceMissile andthen Distance =< Input.maxDistanceMissile then true
+			else false
+			end
+		else %something went wrong
+			{ERR 'WeaponType has an invalid format'#WeaponType}
+			false %because we have to return something
 		end
 	end
 	
