@@ -63,7 +63,7 @@ in
 	%		@TrackingInfo is a record of type @stateTracking (defined hereafter)
 	%
 	% @stateLocation(pos:Position dir:Direction visited:VisitedSquares)
-	% @stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+	% @stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 	%		@XLoading is the loading of the weapon of type X
 	%						it can also be used to know 
 	%						how much of this weapon is currently available (using mod)
@@ -605,6 +605,38 @@ in
 		if DistanceFromPlayer >= Input.minDistanceMins andthen DistanceFromPlayer =< Input.maxDistanceMine then mine(RandomPosition)
 		else {PlaceMine PlayerPosition TrackingInfo}
 		end
+	end
+	
+	% @FireMissile : Creates a missile set to explode at a random position on the grid
+	%                but in the range from the player where it is allowed to make it explode
+	%                Returns the created missile (with the position of explosion as a parameter)
+	fun {FireMissile PlayerPosition TrackingInfo}
+		RandomPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
+		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
+	in
+		% Check the distances
+		if DistanceFromPlayer >= Input.minDistanceMissile andthen DistanceFromPlayer =< Input.maxDistanceMissile then missile(RandomPosition)
+		else {FireMissile PlayerPosition TrackingInfo}
+		end
+	end
+	
+	% @FireDrone : Creates a drone looking at a row or a column (one-in-two chance to be one or the other)
+	%              Returns this drone (with which row or column it is watching as a parameter)
+	fun {FireDrone TrackingInfo}
+		case {OS.rand} mod 2
+		of 0 then %row
+			drone(row:({OS.rand} mod Input.nColumn)+1)
+		[] 1 then %column
+			drone(column:({OS.rand} mod Input.nRow)+1)
+		else %something went wrong
+			{ERR 'Randomized out-of-bounds'}
+			drone(row:({OS.rand} mod Input.nColumn)+1) %because we have to return something valid
+		end
+	end
+	
+	% @FireSonar : Creates a sonar and returns it
+	fun {FireSonar TrackingInfo}
+		sonar
 	end
 	
 	% @ExplodeMine : Checks if there is a mine in the list of mines placed (contained in @WeaponsState)
