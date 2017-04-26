@@ -260,11 +260,11 @@ in
 				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 			%------- Flash info : player @ID has the item @KindItem ----------
 			[] sayCharge(ID KindItem) then
-				%TODO
+				%Ignore this
 				ReturnedState = State
 			%------- Flash info : player @ID has placed a mine --------------
 			[] sayMinePlaced(ID) then
-				%TODO
+				%Ignore this
 				ReturnedState = State
 			%-------- A missile exploded (is this player damaged?) ---------------
 			[] sayMissileExplode(ID Position ?Message) then
@@ -704,7 +704,6 @@ in
 		in
 			{Loop TrackingInfo}
 		end
-		%TODO fire when some player is found
 	end
 	
 	% @ChooseWhichToFire : If a weapon is available and @this wants to shoot
@@ -832,18 +831,90 @@ in
 		end
 	end
 	
-	% @FireDrone : Creates a drone looking at a row or a column (one-in-two chance to be one or the other)
+	% @FireDrone : Creates a drone (looking at a row or a column)
+	%              that search for a player whose position is supposed
 	%              Returns this drone (with which row or column it is watching as a parameter)
-	% TODO for the moment this is random
 	fun {FireDrone TrackingInfo}
-		case {OS.rand} mod 2
-		of 0 then %row
-			drone(row:({OS.rand} mod Input.nColumn)+1)
-		[] 1 then %column
-			drone(column:({OS.rand} mod Input.nRow)+1)
-		else %something went wrong
-			{ERR 'Randomized out-of-bounds'}
-			drone(row:({OS.rand} mod Input.nColumn)+1) %because we have to return something valid
+		% The next function returns the first supposed position found in @TrackingInfo
+		fun {Loop TrackingInfo}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:_ surface:_ x:X y:Y) then
+					case X
+					of supposed(_) then
+						pos(x:X y:Y)
+					else
+						case Y
+						of supposed(_) then
+							pos(x:X y:Y)
+						else
+							{Loop Remainder}
+						end
+					end
+				else %something went wrong
+					{ERR 'An element in TrackingInfo has an invalid format'#TrackingInfo}
+					{Loop Remainder}
+				end
+			[] nil then %no supposed position found
+				null
+			else %something went wrong
+				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				null
+			end
+		end
+		
+		TargetPosition = {Loop TrackingInfo}
+	in
+		if TargetPosition == null then %this shouldn't happen, but if it does, fire randomly
+			case {OS.rand} mod 2
+			of 0 then %row
+				drone(row:({OS.rand} mod Input.nColumn)+1)
+			[] 1 then %column
+				drone(column:({OS.rand} mod Input.nRow)+1)
+			else %something went wrong
+				{ERR 'Randomized out-of-bounds'}
+				drone(row:({OS.rand} mod Input.nRow)+1) %because we have to return something valid
+			end
+		else
+			case TargetPosition
+			of pos(x:X y:Y) then
+				%Choose randomly between @X and @Y (but fire only if it's a supposed coordinate)
+				case {OS.rand} mod 2
+				of 0 then
+					case X
+					of supposed(Column) then
+						drone(column:Column)
+					else
+						case Y
+						of supposed(Row) then
+							drone(row:Row)
+						else %something went wrong
+							{ERR 'TargetPosition was returned as an incorrect value'#TargetPosition}
+							{FireDrone TrackingInfo}
+						end
+					end
+				[] 1 then
+					case Y
+					of supposed(Row) then
+						drone(row:Row)
+					else
+						case X
+						of supposed(Column) then
+							drone(column:Column)
+						else %something went wrong
+							{ERR 'TargetPosition was returned as an incorrect value'#TargetPosition}
+							{FireDrone TrackingInfo}
+						end
+					end
+				else %something went wrong
+					{ERR 'Randomized out-of-bound'}
+					{FireDrone TrackingInfo}
+				end
+			else %something went wrong
+				{ERR 'TargetPosition returned an invalid formatted value'#TargetPosition}
+				drone(column:({OS.rand} mod Input.nColumn)+1) %because we have to return something
+			end
 		end
 	end
 	

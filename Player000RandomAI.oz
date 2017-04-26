@@ -600,7 +600,7 @@ in
 			drone(column:({OS.rand} mod Input.nRow)+1)
 		else %something went wrong
 			{ERR 'Randomized out-of-bounds'}
-			drone(row:({OS.rand} mod Input.nColumn)+1) %because we have to return something valid
+			drone(row:({OS.rand} mod Input.nRow)+1) %because we have to return something valid
 		end
 	end
 	
