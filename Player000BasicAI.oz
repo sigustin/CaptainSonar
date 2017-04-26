@@ -195,7 +195,6 @@ in
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 				end
 			%------- Fire a weapon -------------------
-			%TODO for the moment it's random
 			[] fireItem(?ID ?KindFire) then
 				if PlayerLife =< 0 then
 					ID = null
@@ -729,10 +728,16 @@ in
 		case WeaponsState
 		of stateWeapons(minesLoading:MinesLoading minesPlaced_ missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:_ sonarsLoading:SonarsLoading) then
 			% Choose a type of weapon to try and fire
-			WeaponTypeToFire = {Loop TrackingInfo}
+			WeaponTypeToFire
 		in
+			if TrackingInfo == nil then
+				WeaponTypeToFire = sonar
+			else
+				WeaponTypeToFire = {Loop TrackingInfo}
+			end
+			
 			case WeaponTypeToFire
-			% If this type od weapon is available, fire it with a one-in-two chance
+			% If this type of weapon is available, fire it
 			of mine then if MinesLoading div Input.mine > 0 then mine else null end
 			[] missile then 
 				if MissilesLoading div Input.mine > 0 then missile
