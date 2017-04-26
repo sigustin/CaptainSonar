@@ -46,7 +46,7 @@ define
 	FakeCoordForSonars
 	
 	PlayerMoved
-	UpdateCoord
+	SonarAnswered
 	
 	PositionIsValid
 	CoordIsOnGrid
@@ -71,7 +71,7 @@ in
 	% @stateTracking(Infos)
 	%     @Infos is an array containing records with the following format :
 	%            @trackingInfo(id:ID surface:Surface x:X y:Y)
-	%                 where @ID is the ID of one player tracked
+	%                 where @ID is the ID of one player tracked (!!! It should NEVER contain @this!!!)
 	%                       @Surface is a boolean (@true if player @ID is
 	%                                              at the surface)
 	%                       @X and @Y are one of the following records
@@ -330,10 +330,15 @@ in
 					
 					ReturnedState = State
 				end
-			%-------- This palyer's sonar probing answers ------------------
+			%-------- This player's sonar probing answers ------------------
 			[] sayAnswerSonar(ID Answer) then
-				%TODO
-				ReturnedState = State
+				if ID \= PlayerID then
+					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
+				in
+					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+				else
+					ReturnedState = State
+				end
 			%-------- Flash info : player @ID is dead -----------------
 			[] sayDeath(ID) then
 				%TODO
@@ -795,6 +800,71 @@ in
 		end
 	in
 		{Loop TrackingInfo ID Direction nil}
+	end
+	
+	% @SonarAnswered : A sonar came back with the answers @ID and @Answer
+	%                  Updates the tracking info and returns it
+	fun {SonarAnswered TrackingInfo ID Answer}
+		fun {Loop TrackingInfo ID Answer Acc}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:CurrentID surface:Surface x:X y:Y) then
+					if CurrentID == ID then %found the player's info to update
+						UpdatedX UpdatedY
+						UpdatedTrack = trackingInfo(id:ID surface:Surface x:UpdatedX y:UpdatedY)
+					in
+						case Answer
+						of pt(x:XSonar y:YSonar) then
+							case X
+							of unknown then
+								UpdatedX = XSonar
+							[] supposed(_) then
+								UpdatedX = XSonar %TODO should we really update this?
+							else %certain => don't update
+								UpdatedX = X
+							end
+							
+							case Y
+							of unknown then
+								UpdatedY = YSonar
+							[] supposed(_) then
+								UpdatedY = YSonar %TODO should we really update this?
+							else %certain => don't update
+								UpdatedY = Y
+							end
+							
+							% Add this new track in the tracking info
+							%return
+							{Append {Append Acc UpdatedTrack|nil} TrackingInfo}
+						else %something went wrong
+							{ERR 'Answer given to sonar has an invalid format'#Answer}
+							{Loop Remainder ID Answer {Append Acc Track|nil}}
+						end
+					else
+						{Loop Remainder ID Answer {Append Acc Track|nil}}
+					end
+				else %something went wrong
+					{ERR 'An element of TrackingInfo has an invalid format'#Track}
+					{Loop Remainder ID Answer {Append Acc Track|nil}}
+				end
+			[] nil then %Player @ID was not found => add it
+				case Answer
+				of pt(x:X y:Y) then
+					%return
+					{Append Acc trackingInfo(id:ID surface:unknown x:X y:Y)|nil}
+				else %something went wrong
+					{ERR 'Answer given to sonar has an invalid format'#Answer}
+					%return
+					Acc
+				end
+			else %something went wrong
+				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				nil
+			end
+		end
+	in
+		{Loop TrackingInfo ID Answer nil}
 	end
 	
 	%============== Useful procedures and functions ================
