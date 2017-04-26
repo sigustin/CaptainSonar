@@ -47,6 +47,7 @@ define
 	FakeCoordForSonars
 	
 	PlayerMoved
+	PlayerMadeSurface
 	DroneAnswered
 	SonarAnswered
 	
@@ -221,7 +222,7 @@ in
 					case {ExplodeMine WeaponsState TrackingInfo}
 					of MineExploding#NewWeaponsState then
 						Mine = MineExploding
-						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking::TrackingInfo)
+						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking::TrackingInfo)
 					else %something went wrong
 						{ERR 'ExplodeMine did not return a record correctly formatted'}
 						ReturnedState = State
@@ -251,8 +252,9 @@ in
 				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 			%-------- Flash info : player @ID has made surface --------------
 			[] saySurface(ID) then
-				%TODO
-				ReturnedState = State
+				UpdatedTrackingInfo = {PlayerMadeSurface TrackingInfo ID}
+			in
+				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 			%------- Flash info : player @ID has the item @KindItem ----------
 			[] sayCharge(ID KindItem) then
 				%TODO
@@ -571,7 +573,6 @@ in
 	% @ChooseWhichToFire : If a weapon is available and @this wants to shoot
 	%                      somewhere, decides which weapon to use and
 	%                      returns it
-	% TODO for the moment this is random
 	fun {ChooseWhichToFire WeaponsState TrackingInfo}
 		fun {Loop TrackingInfo}
 			case TrackingInfo
@@ -908,6 +909,36 @@ in
 		end
 	in
 		{Loop TrackingInfo ID Direction nil}
+	end
+	
+	% @PlayerMadeSurface : Update the tracking info when Player @ID made surface
+	fun {PlayerMadeSurface TrackingInfo ID}
+		fun {Loop TrackingInfo ID Acc}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:CurrentID surface:Surface x:X y:Y) then
+					if CurrentID == ID then %found the player's info to update
+						%return
+						{Append {Append Acc trackingInfo(id:CurrentID surface:true x:X y:Y)|nil} TrackingInfo}
+					else
+						{Loop Remainder ID {Append Acc Track|nil}}
+					end
+				else %something went wrong
+					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{Loop Remainder ID {Append Acc Track|nil}}
+				end
+			[] nil then %player was not found => add it
+				%return
+				{Append Acc trackingInfo(id:ID surface:true x:unknown y:unknown)|nil}
+			else %something went wrong
+				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				%return
+				TrackingInfo
+			end
+		end
+	in
+		{Loop TrackingInfo ID nil}
 	end
 	
 	% @DroneAnswered : A drone came back with the answers @ID and @Answer
