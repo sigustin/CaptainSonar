@@ -52,7 +52,7 @@ define
 	PositionIsValid
 	CoordIsOnGrid
 	
-	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 sonarsLoading:0)
+	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 lastDroneFired:null sonarsLoading:0)
 	DefaultTrackingState = nil
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -478,35 +478,35 @@ in
 	%               Returns the new weapons state and a weapon type if a new weapon is available
 	fun {LoadWeapon WeaponsState}
 		case WeaponsState
-		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
+		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 			%TODO for the moment random
 			NewWeaponsState
 			NewWeaponAvailable
 		in
 			case {OS.rand} mod 4
 			of 0 then
-				NewWeaponsState = stateWeapons(minesLoading:MinesLoading+1 minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+				NewWeaponsState = stateWeapons(minesLoading:MinesLoading+1 minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 				if (MinesLoading+1) mod Input.mine == 0 then
 					NewWeaponAvailable = mine
 				else
 					NewWeaponAvailable = null
 				end
 			[] 1 then
-				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading+1 dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading+1 dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 				if (MissilesLoading+1) mod Input.missile == 0 then
 					NewWeaponAvailable = missile
 				else
 					NewWeaponAvailable = null
 				end
 			[] 2 then
-				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading+1 sonarsLoading:SonarsLoading)
+				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading+1 lastDroneFired:Drone sonarsLoading:SonarsLoading)
 				if (DronesLoading+1) mod Input.drone then
 					NewWeaponAvailable = drone
 				else
 					NewWeaponAvailable = null
 				end
 			[] 3 then
-				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading+1)
+				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading+1)
 				if (SonarsLoading+1) mod Input.sonar then
 					NewWeaponAvailable = sonar
 				else
@@ -532,7 +532,7 @@ in
 	% TODO for the moment this is random
 	fun {ChooseWhichToFire WeaponsState TrackingInfo}
 		case WeaponsState
-		of stateWeapons(minesLoading:MinesLoading minesPlaced_ missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
+		of stateWeapons(minesLoading:MinesLoading minesPlaced_ missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:_ sonarsLoading:SonarsLoading) then
 			% Choose a type of weapon to try and fire
 			case {OS.rand} mod 4
 			% If this type od weapon is available, fire it with a one-in-two chance
@@ -562,9 +562,11 @@ in
 			[] missile then
 				{FireMissile PlayerPosition TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
 			[] drone then
-				{FireDrone TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+				DroneFired = {FireDrone TrackingInfo}
+			in
+				DroneFired#{UpdateWeaponsState WeaponsState DroneFired}
 			[] sonar then
-				{FireSonar TrackingInfo}#{UpdateWeaponsState WeaponsState WeaponType}
+				{FireSonar}#{UpdateWeaponsState WeaponsState WeaponType}
 			else null#WeaponsState
 			end
 		else %something went wrong
@@ -578,12 +580,13 @@ in
 	%                       (for a mine it is the mine fired)
 	fun {UpdateWeaponsState WeaponsState WeaponFired}
 		case WeaponsState
-		of stateWeapons(miensLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
+		of stateWeapons(miensLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 			case WeaponFired
-			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
-			[] missile then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading-Input.missile dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
-			[] drone then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone sonarsLoading:SonarsLoading)
-			[] sonar then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading-Input.sonar)
+			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
+			[] missile then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading-Input.missile dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
+			[] drone(row:_) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
+			[] drone(column:_) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
+			[] sonar then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading-Input.sonar)
 			else WeaponsState
 			end
 		else %something went wrong
@@ -610,6 +613,7 @@ in
 	% @FireMissile : Creates a missile set to explode at a random position on the grid
 	%                but in the range from the player where it is allowed to make it explode
 	%                Returns the created missile (with the position of explosion as a parameter)
+	% TODO for the moment this is random
 	fun {FireMissile PlayerPosition TrackingInfo}
 		RandomPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
 		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
@@ -622,6 +626,7 @@ in
 	
 	% @FireDrone : Creates a drone looking at a row or a column (one-in-two chance to be one or the other)
 	%              Returns this drone (with which row or column it is watching as a parameter)
+	% TODO for the moment this is random
 	fun {FireDrone TrackingInfo}
 		case {OS.rand} mod 2
 		of 0 then %row
@@ -635,7 +640,7 @@ in
 	end
 	
 	% @FireSonar : Creates a sonar and returns it
-	fun {FireSonar TrackingInfo}
+	fun {FireSonar}
 		sonar
 	end
 	
@@ -660,10 +665,10 @@ in
 		end
 	in
 		case WeaponsState
-		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading) then
+		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 			case {Loop MinesPlaced nil}
 			of Mine#RemainingMines then
-				Mine#stateWeapons(minesLoading:MinesLoading minesPlaced:RemainingMines missilesLoading:MissilesLoading dronesLoading:DronesLoading sonarsLoading:SonarsLoading)
+				Mine#stateWeapons(minesLoading:MinesLoading minesPlaced:RemainingMines missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			end
 		else %something went wrong
 			{ERR 'WeaponsState has an invalid format'#WeaponsState}
