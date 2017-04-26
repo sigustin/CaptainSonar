@@ -611,7 +611,7 @@ in
 		{CheckEnd GameFinished}
 
 		if GameFinished then
-			{Browser 'The game is finished'}
+			{Browser.browse 'The game is finished'}
 		end
 
 	end

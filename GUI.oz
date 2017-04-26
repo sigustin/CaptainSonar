@@ -247,7 +247,7 @@ in
 				    lr(label(text:"One player just died!" width:40)
 				      glue:ew)
 					 lr(label(text:"Not everyone deserve to live, especially not him apparently."))
-				    button(text:"Ok" glue:ew apperently
+				    button(text:"Ok" glue:ew
 					   action:OnClose
 					  )
 				   )
