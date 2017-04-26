@@ -27,6 +27,9 @@ define
 	NoSquareAvailable
 	RandomStep
 	SquareNotVisited
+	GetTarget
+	MoveTowards
+	PositionGetsYouCloser
 	
 	LoadWeapon
 	ChooseWhichToLoad
@@ -420,27 +423,40 @@ in
 					stateLocation(pos:Position dir:surface visited:nil)
 				%Never go to the surface if another square is available
 				else
-					%TODO for the moment this is random
-					NewPosition
-					Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
-					DirectionTravelled %the direction towards which this player went
+					Target = {GetTarget TrackingInfo}
 				in
-					%Choose which axis to follow
-					if {OS.rand} mod 2 == 0 then % X-axis (vertically)
-						NewPosition = pt(x:Position.x+Movement y:Position.y)
-						if Movement == 1 then DirectionTravelled = south
-						else DirectionTravelled = north
+					if Target \= null then %Go to target
+						NewPosition#DirectionTravelled = {MoveTowards Position VisitedSquares Target}
+					in
+						if NewPosition == null orelse DirectionTravelled == null then %something went wrong
+							%return
+							LocationState
+						else
+							%return
+							stateLocation(pos:NewPosition dir:DirectionTravelled visited:NewPosition|VisitedSquares)
 						end
-					else % Y-axis (horizontally)
-						NewPosition = pt(x:Position.x y:Position.y+Movement)
-						if Movement == 1 then DirectionTravelled = east
-						else DirectionTravelled = west
+					else %No target => Move randomly
+						NewPosition
+						Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
+						DirectionTravelled %the direction towards which this player went
+					in
+						%Choose which axis to follow
+						if {OS.rand} mod 2 == 0 then % X-axis (vertically)
+							NewPosition = pt(x:Position.x+Movement y:Position.y)
+							if Movement == 1 then DirectionTravelled = south
+							else DirectionTravelled = north
+							end
+						else % Y-axis (horizontally)
+							NewPosition = pt(x:Position.x y:Position.y+Movement)
+							if Movement == 1 then DirectionTravelled = east
+							else DirectionTravelled = west
+							end
 						end
-					end
-					if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition VisitedSquares} then
-						%return
-						stateLocation(pos:NewPosition dir:DirectionTravelled visited:NewPosition|VisitedSquares)
-					else {Move LocationState TrackingInfo} %Choose another new position
+						if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition VisitedSquares} then
+							%return
+							stateLocation(pos:NewPosition dir:DirectionTravelled visited:NewPosition|VisitedSquares)
+						else {Move LocationState TrackingInfo} %Choose another new position
+						end
 					end
 				end
 			end
@@ -488,6 +504,126 @@ in
 		else %something went wrong
 			{ERR 'VisitedSquares has an invalid format'#VisitedSquares}
 			true %Prevents looping forever
+		end
+	end
+	
+	% @GetTarget : Returns the position of the first player whose position is known
+	%              or null if no position is certain
+	fun {GetTarget TrackingInfo}
+		fun {Loop TrackingInfo}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+					case XInfo#YInfo
+					of certain(X)#certain(Y) then
+						pt(x:X y:Y)
+					else %not certain => move randomly
+						null
+					end
+				else %something went wrong
+					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{Loop Remainder}
+				end
+			[] nil then null
+			else %something went wrong
+				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				null
+			end
+		end
+	in
+		{Loop TrackingInfo}
+	end
+	
+	% @MoveTowards : Returns a valid position that allows @this to 
+	%                move towards @Target (in most cases)
+	%                and the direction it makes
+	fun {MoveTowards Position VisitedSquares Target}
+		case Position#Target
+		of pt(x:X y:Y)#pt(x:XTarget y:YTarget) then
+			NewPosition
+			NewDirection
+		in
+			% Randomly choose a direction to follow and check if it is valid and
+			% gets you closer to the target.
+			% One-in-ten chance of moving there anyway (to avoid looping forever),
+			% otherwise call recursively this function.
+			case {OS.rand} mod 4
+			of 0 then %south
+				NewDirection = south
+				NewPosition = pt(x:X+1 y:Y)
+			[] 1 then %north
+				NewDirection = north
+				NewPosition = pt(x:X-1 y:Y)
+			[] 2 then %west
+				NewDirection = west
+				NewPosition = pt(x:X y:Y+1)
+			[] 3 then %east
+				NewDirection = east
+				NewPosition = pt(x:X y:Y-1)
+			else %something went wrong
+				{ERR 'Randomized out-of-bound'}
+				NewPosition = null
+			end
+			
+			if NewPosition == null then
+				{MoveTowards Position VisitedSquares Target}
+			else
+				if {PositionGetsYouCloser Position NewPosition Target} then
+					if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition VisitedSquares} then
+						%return
+						NewPosition#NewDirection
+					else
+						{MoveTowards Position VisitedSquares Target}
+					end
+				else
+					if {OS.rand} mod 10 == 0 then %use it anyway
+						if {PositionIsValid NewPosition} andthen {SquareNotVisited NewPosition VisitedSquares} then
+							%return
+							NewPosition#NewDirection
+						else
+							{MoveTowards Position VisitedSquares Target}
+						end
+					else
+						{MoveTowards Position VisitedSquares Target}
+					end
+				end
+			end
+		else %something went wrong
+			{ERR 'Target or Position has an invalid format'#Target#Position}
+			null#null
+		end
+	end
+	
+	% @PositionGetsYouCloser : Returns @true if @NewPosition gets you closer to @Target
+	%                          !!! @NewPosition should ALWAYS be one square next to @Position !!!
+	fun {PositionGetsYouCloser Position NewPosition Target}
+		case Position#NewPosition#Target
+		of pt(x:X y:Y)#pt(x:NewX y:NewY)#pt(x:XTarget y:YTarget) then
+			if NewX == X then
+				if YTarget > Y then
+					if NewY > Y then true
+					else false
+					end
+				else %YTarget < Y
+					if NewX < Y then true
+					else false
+					end
+				end
+			else %NewY == Y
+				if XTarget > X then
+					if NewX > X then true
+					else false
+					end
+				else %XTarget < X
+					if NewX < X then true
+					else false
+					end
+				end
+			end
+		else %something went wrong
+			{ERR 'Position, NewPosition or Target have an invalid format'#Position#NewPosition#Target}
+			true %because we have to return something
 		end
 	end
 	
