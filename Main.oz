@@ -513,73 +513,96 @@ in
 
 	% @OnePlayerSimultaneous : Handle the play of the player listening to P (launch it inside a thread for each player)
 	proc {OnePlayerSimultaneous P}
+		ID1
+		ID2
+		ID3
+	in
 		if {IsAlive P} andthen {NumberAlive PlayersPorts 0}>1 then ID Position Direction in
 			%our player is alive
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
 			%direction?
 			{Send P move(ID Position Direction)}
-			{BroadcastDirection ID Direction}
+			case ID of null then
+				skip
+			else
 
-			case Direction
-			of surface then
-				{Send PortWindow surface(ID)}
-				{Delay Input.turnSurface}
-				{Send P dive}
-				{OnePlayerSimultaneous P}
-			else KindItem KindFire Mine in
+				{BroadcastDirection ID Direction}
 
-				{Send PortWindow movePlayer(ID Position)}
+				case Direction
+				of surface then
+					{Send PortWindow surface(ID)}
+					{Delay Input.turnSurface}
+					{Send P dive}
+					{OnePlayerSimultaneous P}
+				else KindItem KindFire Mine in
 
-				{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
+					{Send PortWindow movePlayer(ID Position)}
 
-				{Send P chargeItem(ID KindItem)}
-				case KindItem
-				of null then
-					skip
-				else
-					{BroadcastItemCharged ID KindItem}
-				end
-
-				{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
-
-				{Send P fireItem(ID KindFire)}
-
-				case KindFire
-				of null then
-					skip
-				else Killed in
-					%broadcast and receive informations, change alive list
-					case KindFire
-					of missile(Pos) then
-						Killed = {MissileExplode ID Pos}
-					[] sonar then
-						Killed = {SonarActivated ID P}
-					[] drone(column:X) then
-						Killed = {DroneActivated ID P KindFire}
-					[] drone(row:Y) then
-						Killed = {DroneActivated ID P KindFire}
-					[] mine(pt(x:X y:Y)) then
-						Killed = {MinePlaced ID}
-					end
-					{BroadcastKilled Killed}
-				end
-
-				if {IsAlive P} then
 					{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-					{Send P fireMine(ID Mine)}
-					case Mine
-					of null then
+					{Send P chargeItem(ID1 KindItem)}
+					case ID1 of null then
 						skip
-					else Killed in
-						%broadcast and receive informations, change alive list
-						Killed = {MineExploded ID Mine.1}
-						{BroadcastKilled Killed}
+					else
+						case KindItem
+						of null then
+							skip
+						else
+							{BroadcastItemCharged ID KindItem}
+						end
+
+						{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
+
+						{Send P fireItem(ID2 KindFire)}
+						case ID2 of null then
+							skip
+						else
+
+							case KindFire
+							of null then
+								skip
+							else Killed in
+								%broadcast and receive informations, change alive list
+								case KindFire
+								of missile(Pos) then
+									Killed = {MissileExplode ID Pos}
+								[] sonar then
+									Killed = {SonarActivated ID P}
+								[] drone(column:X) then
+									Killed = {DroneActivated ID P KindFire}
+								[] drone(row:Y) then
+									Killed = {DroneActivated ID P KindFire}
+								[] mine(pt(x:X y:Y)) then
+									Killed = {MinePlaced ID}
+									{Send PortWindow putMine(ID pt(x:X y:Y))}
+								end
+								{BroadcastKilled Killed}
+							end
+
+							if {IsAlive P} then
+								{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
+
+								{Send P fireMine(ID3 Mine)}
+								case ID3 of null then
+									skip
+								else
+									case Mine
+									of null then
+										skip
+									else Killed in
+										%broadcast and receive informations, change alive list
+										Killed = {MineExploded ID Mine.1}
+										{BroadcastKilled Killed}
+										{Send PortWindow removeMine(ID Mine.1)}
+									end
+								end
+
+								{OnePlayerSimultaneous P}
+							end
+						end
 					end
 				end
-
-				{OnePlayerSimultaneous P}
 			end
 		end
 	end
