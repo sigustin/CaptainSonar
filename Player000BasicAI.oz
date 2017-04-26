@@ -45,10 +45,14 @@ define
 	
 	FakeCoordForSonars
 	
+	PlayerMoved
+	UpdateCoord
+	
 	PositionIsValid
+	CoordIsOnGrid
 	
 	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 sonarsLoading:0)
-	DefaultTrackingState = wip
+	DefaultTrackingState = nil
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% This port object uses a state record of this type :
@@ -66,21 +70,19 @@ in
 	%							and that haven't exploded yet (with ther position)
 	% @stateTracking(Infos)
 	%     @Infos is an array containing records with the following format :
-	%            @trackingInfo(id:ID track:Track)
+	%            @trackingInfo(id:ID surface:Surface x:X y:Y)
 	%                 where @ID is the ID of one player tracked
-	%                       @Track is a record of type :
-	%                             @trackInfo(surface:Surface x:X y:Y)
-	%                                  where @Surface is a boolean (@true if player @ID is
-	%                                                               at the surface)
-	%                                        @X and @Y are one of the following records
-	%                                            @unknown if we have no idea about this coord
-	%                                            @supposed(Coord) if we think it might be the
-	%                                                             coordinate of the player
-	%                                                             (both coordinates received by
-	%                                                              a sonar for example)
-	%                                            @certain(Coord) if we know the coordinate is right
+	%                       @Surface is a boolean (@true if player @ID is
+	%                                              at the surface)
+	%                       @X and @Y are one of the following records
+	%                                 @unknown if we have no idea about this coord
+	%                                 @supposed(Coord) if we think it might be the
+	%                                                  coordinate of the player
+	%                                                  (both coordinates received by
+	%                                                   a sonar for example)
+	%                                 @certain(Coord) if we know the coordinate is right
 	%                                        Computations will be done on those when a player is
-	%                                            broadcast to be moving
+	%                                        broadcast to be moving
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
 	%============ Make the port object ===================
@@ -242,8 +244,9 @@ in
 				end
 			%------- Flash info : player @ID has moved in the direction @Direction ----------
 			[] sayMove(ID Direction) then
-				%TODO
-				ReturnedState = State
+				UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
+			in
+				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 			%-------- Flash info : player @ID has made surface --------------
 			[] saySurface(ID) then
 				%TODO
@@ -689,6 +692,106 @@ in
 		end
 	end
 	
+	% @PlayerMoved : Updates the information of tracking for the player @ID
+	%                when it moves in the direction @Direction
+	%
+	%                We update when the type of coordinate is @supposed or @certain.
+	%                If the update produces an invalid coordinate (out of the grid),
+	%                we transform a @supposed in @unknown and a @certain in @supposed.
+	fun {PlayerMoved TrackingInfo ID Direction}
+		fun {Loop TrackingInfo ID Direction Acc}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:CurrentID surface:Surface x:X y:Y) then
+					if CurrentID == ID then % This is the player's info that we have to update
+						if Direction == north orelse Direction == south then %moving along X
+							case X
+							of supposed(Coord) then
+								NewCoord
+							in
+								if Direction == south then NewCoord = Coord+1
+								else NewCoord = Coord-1
+								end
+								
+								if {CoordIsOnGrid NewCoord x} then
+									%return
+									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(NewCoord) y:Y)|nil} TrackingInfo}
+								else
+									%return
+									{Append {Append Acc trackingInfo(id:ID surface:false x:unknown y:Y)|nil} TrackingInfo}
+								end
+							[] certain(Coord) then
+								NewCoord
+							in
+								if Direction == south then NewCoord = Coord+1
+								else NewCoord = Coord-1
+								end
+								
+								if {CoordIsOnGrid NewCoord x} then
+									%return
+									{Append {Append Acc trackingInfo(id:ID surface:false x:certain(NewCoord) y:Y)|nil} TrackingInfo}
+								else
+									%return
+									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(Coord) y:Y)|nil} TrackingInfo}
+								end
+							else % coord is @unknown => don't do anything
+								%return
+								{Append {Append Acc Track|nil} TrackingInfo}
+							end
+						elseif Direction == west orelse Direction == east then%moving along Y
+							case Y
+							of supposed(Coord) then
+								NewCoord
+							in
+								if Direction == east then NewCoord = Coord+1
+								else NewCoord = Coord-1
+								end
+								
+								if {CoordIsOnGrid NewCoord y} then
+									%return
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(NewCoord))|nil} TrackingInfo}
+								else
+									%return
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:unknown)|nil} TrackingInfo}
+								end
+							[] certain(Coord) then
+								NewCoord
+							in
+								if Direction == east then NewCoord = Coord+1
+								else NewCoord = Coord-1
+								end
+								
+								if {CoordIsOnGrid NewCoord y} then
+									%return
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:certain(NewCoord))|nil} TrackingInfo}
+								else
+									%return
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(Coord))|nil} TrackingInfo}
+								end
+							else %coord is @unknown => don't do anything
+								%return
+								{Append {Append Acc Track|nil} TrackingInfo}
+							end
+						else %something went wrong %TODO what about surface?
+							{ERR 'Direction given is invalid'#Direction}
+							{Append {Append Acc Track|nil} TrackingInfo}
+						end
+					end
+				else %something went wrong
+					{ERR 'An element of TrackingInfo has an invalid format'#Track}
+					{Loop Remainder ID Direction {Append Acc Track|nil}}
+				end
+			[] nil then Acc
+			else %something went wrong
+				{ERR 'TrackingInfo has an invalid format'}
+				nil
+			end
+		end
+	in
+		{Loop TrackingInfo ID Direction nil}
+	end
+	
 	%============== Useful procedures and functions ================
 	% @PositionIsValid : checks if @Position is not on an island
 	%                    returns @true if it is valid and @false otherwise
@@ -702,6 +805,22 @@ in
 			else false
 			end
 		else false
+		end
+	end
+	
+	% @CoordIsOnGrid :checks if @Coord along the axis @Axis is on the grid
+	fun {CoordIsOnGrid Coord Axis}
+		if Axis == x then
+			if Coord =< 0 orelse Coord > Input.nRow then false
+			else true
+			end
+		elseif Axis == y then
+			if Coord =< 0 orelse Coord > Input.nColumn then false
+			else true
+			end
+		else %something went wrong
+			{ERR 'Tried to check a coordinate in an invalid axis'#Axis}
+			false		
 		end
 	end
 end
