@@ -46,6 +46,7 @@ define
 	FakeCoordForSonars
 	
 	PlayerMoved
+	DroneAnswered
 	SonarAnswered
 	
 	PositionIsValid
@@ -317,8 +318,14 @@ in
 				end
 			%------ This player's drone came back with answers ------------
 			[] sayAnswerDrone(Drone ID Answer) then
-				%TODO
-				ReturnedState = State
+				%TODO Remember what was the last drone that was used (which row/column) => Answer == true/false
+				%if ID \= PlayerID then
+				%	UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID Answer}
+				%in
+				%	ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+				%else
+					ReturnedState = State
+				%end
 			%----- A sonar is detecting => this player gives coordinates (one right, one wrong) ------
 			[] sayPassingSonar(?ID ?Answer) then
 				if PlayerLife =< 0 then
@@ -802,6 +809,72 @@ in
 		{Loop TrackingInfo ID Direction nil}
 	end
 	
+	% @DroneAnswered : A drone came back with the answers @ID and @Answer
+	%                  Updates the tracking info and returns it
+	fun {DroneAnswered TrackingInfo ID Answer}
+		fun {Loop TrackingInfo ID Answer Acc}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:CurrentID surface:Surface x:X y:Y) then
+					if CurrentID == ID then %found the player's info to update
+						UpdatedX UpdatedY
+						UpdatedTrack = trackingInfo(id:ID surface:Surface x:UpdatedX y:UpdatedY)
+					in
+						case Answer
+						of column(XDrone) then
+							case X
+							of	unknown then
+								UpdatedX = certain(XDrone)
+							[] supposed(_) then
+								UpdatedX = certain(XDrone)
+							else %already certain
+								UpdatedX = X
+							end
+							
+							UpdatedY = Y
+						[] row(YDrone) then
+							case Y
+							of unknown then
+								UpdatedY = certain(YDrone)
+							[] supposed(_) then
+								UpdatedY = certain(YDrone)
+							else %already certain
+								UpdatedY = Y
+							end
+							
+							UpdatedX = X
+						else %something went wront
+							{ERR 'Answer given to drone has an invalid format'#Answer}
+							UpdatedX = X
+							UpdatedY = Y
+						end
+						
+						%return
+						{Append {Append Acc UpdatedTrack|nil} TrackingInfo}
+					else
+						{Loop Remainder ID Answer {Append Acc Track|nil}}
+					end
+				else %something went wrong
+					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{Loop Remainder ID Answer {Append Acc Track|nil}}
+				end
+			[] nil then %Player @ID wasn't found => add it
+				case Answer
+				of pt(x:X y:Y) then
+					%return
+					{Append Acc trackingInfo(id:ID surface:unknown x:X y:Y)|nil}
+				else %something went wrong
+					{ERR 'Answer given to drone has an invalid format'#Answer}
+					%return
+					Acc
+				end
+			end
+		end
+	in
+		{Loop TrackingInfo ID Answer nil}
+	end
+	
 	% @SonarAnswered : A sonar came back with the answers @ID and @Answer
 	%                  Updates the tracking info and returns it
 	fun {SonarAnswered TrackingInfo ID Answer}
@@ -839,7 +912,8 @@ in
 							{Append {Append Acc UpdatedTrack|nil} TrackingInfo}
 						else %something went wrong
 							{ERR 'Answer given to sonar has an invalid format'#Answer}
-							{Loop Remainder ID Answer {Append Acc Track|nil}}
+							%return
+							{Append Acc TrackingInfo}
 						end
 					else
 						{Loop Remainder ID Answer {Append Acc Track|nil}}
