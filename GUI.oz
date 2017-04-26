@@ -7,7 +7,7 @@ import
 	Input
 export
 	portWindow:StartWindow
-	
+
 define
 	StartWindow
 	TreatStream
@@ -221,6 +221,14 @@ in
 	end
 
 	fun{RemovePlayer Grid WantedID State}
+		Number NumberWidget
+		Text
+		StatusLabel
+		WindowClosed
+		OnClose
+		GUI
+		Window
+   in
 		case State
 		of nil then nil
 		[] guiPlayer(id:ID score:HandleScore submarine:Handle mines:M path:P)|Next then
@@ -233,6 +241,25 @@ in
 					{RemoveItem Grid H.1}
 				end
 				{RemoveItem Grid Handle}
+
+				GUI = td(action:OnClose
+				    return:WindowClosed
+				    lr(label(text:"One player just died!" width:40)
+				      glue:ew)
+					 lr(label(text:"Not everyone deserve to live, especially not him apparently."))
+				    button(text:"Ok" glue:ew apperently
+					   action:OnClose
+					  )
+				   )
+			   proc {OnClose}
+					{Window close}
+			   end
+			   Window = {QTk.build GUI}
+			   {Window show}
+			   {Wait WindowClosed}
+
+
+
 				Next
 			else
 				State.1|{RemovePlayer Grid WantedID Next}
@@ -256,7 +283,7 @@ in
 	proc{TreatStream Stream Grid State}
 		case Stream
 		of nil then skip
-		[] buildWindow|T then NewGrid in 
+		[] buildWindow|T then NewGrid in
 			NewGrid = {BuildWindow}
 			{TreatStream T NewGrid State}
 		[] initPlayer(ID Position)|T then NewState in
@@ -267,7 +294,7 @@ in
 		[] lifeUpdate(ID Life)|T then
 			{TreatStream T Grid {StateModification Grid ID State {UpdateLife Life}}}
 			{TreatStream T Grid State}
-		[] putMine(ID Position)|T then 
+		[] putMine(ID Position)|T then
 			{TreatStream T Grid {StateModification Grid ID State {DrawMine Position}}}
 		[] removeMine(ID Position)|T then
 			{TreatStream T Grid {StateModification Grid ID State {RemoveMine Position}}}
@@ -286,4 +313,3 @@ in
 		end
 	end
 end
-
