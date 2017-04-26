@@ -573,19 +573,41 @@ in
 	%                      returns it
 	% TODO for the moment this is random
 	fun {ChooseWhichToFire WeaponsState TrackingInfo}
+		fun {Loop TrackingInfo}
+			case TrackingInfo
+			of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
+				case X#Y
+				of certain(_)#certain(_) then
+					missile
+				else
+					{Loop Remainder}
+				end
+			[] nil then drone
+			else %something went wrong
+				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				drone
+			end
+		end
+	in
 		case WeaponsState
 		of stateWeapons(minesLoading:MinesLoading minesPlaced_ missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:_ sonarsLoading:SonarsLoading) then
 			% Choose a type of weapon to try and fire
-			case {OS.rand} mod 4
+			WeaponTypeToFire = {Loop TrackingInfo}
+		in
+			case WeaponTypeToFire
 			% If this type od weapon is available, fire it with a one-in-two chance
-			of 0 then if MinesLoading div Input.mine > 0 then mine else null end
-			[] 1 then if MissilesLoading div Input.mine > 0 then missile else null end
-			[] 2 then if DronesLoading div Input.drone > 0 then drone else null end
-			[] 3 then if SonarsLoading div Input.sonar > 0 then sonar else null end
+			of mine then if MinesLoading div Input.mine > 0 then mine else null end
+			[] missile then 
+				if MissilesLoading div Input.mine > 0 then missile
+				elseif (DronesLoading div Input.drone) > 0 then drone
+				else null
+				end
+			[] drone then if DronesLoading div Input.drone > 0 then drone else null end
+			[] sonar then if SonarsLoading div Input.sonar > 0 then sonar else null end
 			else null
 			end
 		else %something went wrong
-			{ERR 'WeaponsState has an invlaid format'#WeaponsState}
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
 			null %because we have to return something
 		end
 	end
