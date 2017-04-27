@@ -34,6 +34,9 @@ define
 	
 	LoadWeapon
 	ChooseWhichToLoad
+	ChooseMissileOrMine
+	NoTrackingInfo
+	AttackWeaponHeuristic
 	
 	ChooseWhichToFire
 	FireWeapon
@@ -699,7 +702,7 @@ in
 		end
 	end
 	
-	%============== Procedures regarding weapons ===================
+	%============== Procedures regarding loading weapons ===================
 	% @LoadWeapon : Add a loading charge to one type of weapon
 	%               Returns the new weapons state and a weapon type if a new weapon is available
 	fun {LoadWeapon WeaponsState TrackingInfo}
@@ -707,7 +710,7 @@ in
 		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 			NewWeaponsState
 			NewWeaponAvailable
-			WeaponToLoad = {ChooseWhichToLoad TrackingInfo}
+			WeaponToLoad = {ChooseWhichToLoad WeaponsState TrackingInfo}
 		in
 			case WeaponToLoad
 			of mine then
@@ -753,8 +756,8 @@ in
 	end
 	
 	% @ChooseWhichToLoad : Chooses which type of weapon to load on basis of the tracking information
-	fun {ChooseWhichToLoad TrackingInfo}
-		if TrackingInfo == nil then
+	fun {ChooseWhichToLoad WeaponsState TrackingInfo}
+		if {NoTrackingInfo TrackingInfo} then
 			sonar
 		else
 			fun {Loop TrackingInfo}
@@ -762,7 +765,7 @@ in
 				of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
 					case X#Y
 					of certain(_)#certain(_) then
-						missile
+						{ChooseMissileOrMine WeaponsState TrackingInfo}
 					else
 						{Loop Remainder}
 					end
@@ -777,6 +780,86 @@ in
 		end
 	end
 	
+	% @ChooseMissileOrMine : Considers the range of both weapons as well as the loading time
+	%                        and chooses which weapon should be charge (missile or mine)
+	%                        Also considers the number of weapons of this type that are ready and
+	%                        if another player was found in order to decide
+	fun {ChooseMissileOrMine WeaponsState TrackingInfo}
+		Target = {GetTarget TrackingInfo}
+	in
+		% If we found another player and can have a weapon ready on the next turn, return this one
+		if Target \= null then
+			case WeaponsState
+			of stateWeapons(minesLoading:MinesLoading minesPlaced:_ missilesLoading:MissilesLoading dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
+				if (MinesLoading+1) div Input.mine then
+					%return
+					mine
+				elseif (MissilesLoading+1) div Input.missiles then
+					%return
+					missile
+				else
+					%return
+					{AttackWeaponHeuristic}
+				end
+			else %something went wrong
+				{ERR 'WeaponsState has an invalid format'#WeaponsState}
+				missile %because we have to return something
+			end
+		else
+			%return
+			{AttackWeaponHeuristic}
+		end
+	end
+	
+	% @NoTrackingInfo : Checks if there is no info remaining in @TrackingInfo
+	fun {NoTrackingInfo TrackingInfo}
+		fun {Loop TrackingInfo}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:_ surface:_ x:X y:Y) then
+					case X#Y
+					of unknown#unknown then
+						{Loop Remainder}
+					else false
+					end
+				else %something went wrong
+					{ERR 'An element of TrackingInfo has an invalid format'#Track}
+					{Loop Remainder}
+				end
+			[] nil then true
+			else %something went wrong
+				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				true %because we have to return something
+			end
+		end
+	in
+		if TrackingInfo == nil then true
+		else {Loop TrackingInfo}
+		end
+	end
+	
+	% @AttackWeaponHeuristic : Decides if mines or missiles are more interesting
+	%                          considering their range and loading time
+	%                          The coefficients in the formulae are completely arbitrary
+	fun {AttackWeaponHeuristic}
+		MineScore = (3*Input.maxDistanceMine - 3*Input.mine) div (Input.maxDistanceMine-Input.minDistanceMine)
+		MissileScore = (3*Input.maxDistanceMissile - 3*Input.missile) div (Input.maxDistanceMissile-Input.minDistanceMissile)
+	in
+		if MineScore > MissileScore then
+			mine
+		elseif MineScore < MissileScore then
+			missile
+		else
+			if {OS.rand} mod 2 == 0 then
+				mine
+			else
+				missile
+			end
+		end
+	end
+	
+	%=========== Procedures regarding firing weapons ======================	
 	% @ChooseWhichToFire : If a weapon is available and @this wants to shoot
 	%                      somewhere, decides which weapon to use and
 	%                      returns it
@@ -824,7 +907,7 @@ in
 			{ERR 'WeaponsState has an invalid format'#WeaponsState}
 			null %because we have to return something
 		end
-	end
+	end	
 	
 	% @FireWeapon : Fires a weapon of type @WeaponType
 	%               Returns the weapon fired (with parameters) and
