@@ -115,6 +115,7 @@ in
 	   of P|H then ID Position in
 	   	% Set up the current player
 	      {Send P initPosition(ID Position)}
+	      {Browse ID#Position}
 	      % Show the current player
 	      {Send PortWindow initPlayer(ID Position)}
 	      %return

@@ -395,6 +395,7 @@ in
 			% reset the state
 			ReturnedState = stateBasicAI(life:Input.maxDamage locationState:stateLocation(pos:{InitPosition} dir:surface visited:nil) weaponsState:DefaultWeaponsState tracking:DefaultTrackingState)
 		end
+		
 		%return
 		ReturnedState
 	end
@@ -403,9 +404,10 @@ in
 	% @InitPosition : generates the initial position of this player
 	%                 here, it is random (but not on an island)
 	fun {InitPosition}
-		CurrentPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
+		RandomPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
 	in
-		if {PositionIsValid CurrentPosition} then CurrentPosition
+		{Browse 'initpos'#RandomPosition#{PositionIsValid RandomPosition}}
+		if {PositionIsValid RandomPosition} then RandomPosition
 		else {InitPosition}
 		end
 	end
@@ -1652,8 +1654,8 @@ in
 	fun {PositionIsValid Position}
 		case Position
 		of pt(x:X y:Y) then
-			if X =< 0 orelse X > Input.nRow orelse Y >= 0 orelse Y > Input.nColumn then false
-			elseif {Nth {Nth Input.map X} Y} then true
+			if X =< 0 orelse X > Input.nRow orelse Y =< 0 orelse Y > Input.nColumn then false
+			elseif {Nth {Nth Input.map X} Y} == 0 then true
 			else false
 			end
 		else false
