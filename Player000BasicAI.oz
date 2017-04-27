@@ -34,11 +34,12 @@ define
 	
 	LoadWeapon
 	ChooseWhichToLoad
-	ChooseMissileOrMine
+	ChooseMissileOrMineToLoad
 	NoTrackingInfo
 	AttackWeaponHeuristic
 	
 	ChooseWhichToFire
+	ChooseMissileOrMineToFire
 	FireWeapon
 	UpdateWeaponsState
 	PlaceMine
@@ -765,7 +766,7 @@ in
 				of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
 					case X#Y
 					of certain(_)#certain(_) then
-						{ChooseMissileOrMine WeaponsState TrackingInfo}
+						{ChooseMissileOrMineToLoad WeaponsState TrackingInfo}
 					else
 						{Loop Remainder}
 					end
@@ -780,11 +781,11 @@ in
 		end
 	end
 	
-	% @ChooseMissileOrMine : Considers the range of both weapons as well as the loading time
-	%                        and chooses which weapon should be charge (missile or mine)
-	%                        Also considers the number of weapons of this type that are ready and
-	%                        if another player was found in order to decide
-	fun {ChooseMissileOrMine WeaponsState TrackingInfo}
+	% @ChooseMissileOrMineToLoad : Considers the range of both weapons as well as the loading time
+	%                              and chooses which weapon should be charge (missile or mine)
+	%                              Also considers the number of weapons of this type that are ready and
+	%                              if another player was found in order to decide
+	fun {ChooseMissileOrMineToLoad WeaponsState TrackingInfo}
 		Target = {GetTarget TrackingInfo}
 	in
 		% If we found another player and can have a weapon ready on the next turn, return this one
@@ -864,14 +865,14 @@ in
 	%                      somewhere, decides which weapon to use and
 	%                      returns it
 	fun {ChooseWhichToFire WeaponsState TrackingInfo}
-		fun {Loop TrackingInfo}
+		fun {Loop WeaponsState TrackingInfo}
 			case TrackingInfo
 			of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
 				case X#Y
 				of certain(_)#certain(_) then
-					missile %TODO choose between missile and mine based on a heuristic
+					{ChooseMissileOrMineToFire WeaponsState}
 				else
-					{Loop Remainder}
+					{Loop WeaponsState Remainder}
 				end
 			[] nil then drone
 			else %something went wrong
@@ -888,26 +889,51 @@ in
 			if TrackingInfo == nil then
 				WeaponTypeToFire = sonar
 			else
-				WeaponTypeToFire = {Loop TrackingInfo}
+				WeaponTypeToFire = {Loop WeaponsState TrackingInfo}
 			end
 			
 			case WeaponTypeToFire
 			% If this type of weapon is available, fire it
-			of mine then if MinesLoading div Input.mine > 0 then mine else null end
-			[] missile then 
-				if MissilesLoading div Input.missile > 0 then missile
+			of mine then
+				if (MinesLoading div Input.mine) > 0 then mine
 				elseif (DronesLoading div Input.drone) > 0 then drone
 				else null
 				end
-			[] drone then if DronesLoading div Input.drone > 0 then drone else null end
-			[] sonar then if SonarsLoading div Input.sonar > 0 then sonar else null end
+			[] missile then 
+				if (MissilesLoading div Input.missile) > 0 then missile
+				elseif (DronesLoading div Input.drone) > 0 then drone
+				else null
+				end
+			[] drone then if (DronesLoading div Input.drone) > 0 then drone else null end
+			[] sonar then if (SonarsLoading div Input.sonar) > 0 then sonar else null end
 			else null
 			end
 		else %something went wrong
 			{ERR 'WeaponsState has an invalid format'#WeaponsState}
 			null %because we have to return something
 		end
-	end	
+	end
+	
+	% @ChooseMissileOrMineToFire : Considering @WeaponsState, decides if a mine or a missile
+	%                              should be fired
+	fun {ChooseMissileOrMineToFire WeaponsState}
+		case WeaponsState
+		of stateWeapons(minesLoading:MinesLoading minesPlaced:_ missilesLoading:MissilesLoading dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
+			if (MinesLoading div Input.mine) > 0 andthen (MissilesLoading div Input.missile) > 0 then
+				if (MinesLoading div Input.mine) > (MissilesLoading div Input.missile) then
+					mine
+				else
+					missile
+				end
+			elseif (MinesLoading div Input.mine) > 0 then mine
+			elseif (MissilesLoading div Input.missile) > 0 then missile		
+			else null
+			end
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			null %because we have to return something
+		end
+	end
 	
 	% @FireWeapon : Fires a weapon of type @WeaponType
 	%               Returns the weapon fired (with parameters) and
@@ -951,7 +977,7 @@ in
 	%                       (for a mine it is the mine fired)
 	fun {UpdateWeaponsState WeaponsState WeaponFired}
 		case WeaponsState
-		of stateWeapons(miensLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
+		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 			case WeaponFired
 			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			[] missile then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading-Input.missile dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
