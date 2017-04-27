@@ -572,7 +572,7 @@ in
 		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
 	in
 		% Check the distances
-		if DistanceFromPlayer >= Input.minDistanceMine andthen DistanceFromPlayer =< Input.maxDistanceMine then mine(RandomPosition)
+		if DistanceFromPlayer >= Input.minDistanceMine andthen DistanceFromPlayer =< Input.maxDistanceMine andthen {PositionIsValid RandomPosition} then mine(RandomPosition)
 		else {PlaceMine PlayerPosition}
 		end
 	end

@@ -1114,20 +1114,24 @@ in
 	% @SquareIsReachableForExplosion : Returns @true if @Target can be reached from @PlayerPosition
 	%                                  when firing a weapon of type @WeaponType
 	fun {SquareIsReachableForExplosion PlayerPosition Target WeaponType}
-		Distance = {Abs (PlayerPosition.x-Target.x)}+{Abs (PlayerPosition.y-Target.y)}
-	in
-		case WeaponType
-		of mine then
-			if Distance >= Input.minDistanceMine andthen Distance =< Input.maxDistanceMine then true
-			else false
+		if {PositionIsValid Target} then
+			Distance = {Abs (PlayerPosition.x-Target.x)}+{Abs (PlayerPosition.y-Target.y)}
+		in
+			case WeaponType
+			of mine then
+				if Distance >= Input.minDistanceMine andthen Distance =< Input.maxDistanceMine then true
+				else false
+				end
+			[] missile then
+				if Distance >= Input.minDistanceMissile andthen Distance =< Input.maxDistanceMissile then true
+				else false
+				end
+			else %something went wrong
+				{ERR 'WeaponType has an invalid format'#WeaponType}
+				false %because we have to return something
 			end
-		[] missile then
-			if Distance >= Input.minDistanceMissile andthen Distance =< Input.maxDistanceMissile then true
-			else false
-			end
-		else %something went wrong
-			{ERR 'WeaponType has an invalid format'#WeaponType}
-			false %because we have to return something
+		else %@Target is not a valid position
+			false
 		end
 	end
 	
