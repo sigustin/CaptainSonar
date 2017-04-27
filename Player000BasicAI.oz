@@ -177,11 +177,11 @@ in
 				else
 					case LocationState
 					of stateLocation(pos:PlayerPosition dir:PlayerDirection visited:VisitedSquares) then
-						if PlayerDirection =< surface then
+						if PlayerDirection \= surface then
 							% Ignore
 							ReturnedState = State
 						else
-							ReturnedState = stateBasicAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:north visited:nil) wepaonsState:WeaponsState tracking:TrackingInfo)
+							ReturnedState = stateBasicAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:north visited:nil) weaponsState:WeaponsState tracking:TrackingInfo)
 						end
 					else %something went wrong
 						{ERR 'LocationState has an invalid format'#LocationState}
@@ -434,11 +434,11 @@ in
 				%Never go to the surface if another square is available
 				else
 					Target = {GetTarget TrackingInfo}
-					DistancePlayerTarget = {Abs (Position.x-Target.x)}+{Abs (Position.y-Target.y)}
 				in
 					if Target \= null then %Go to target but not too close (in case of explosions)
 						NewPosition
 						DirectionTravelled
+						DistancePlayerTarget = {Abs (Position.x-Target.x)}+{Abs (Position.y-Target.y)}
 					in
 						if DistancePlayerTarget > 2 then
 							NewPosition#DirectionTravelled = {MoveTowards Position VisitedSquares Target}
@@ -732,14 +732,14 @@ in
 				end
 			[] drone then
 				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading+1 lastDroneFired:Drone sonarsLoading:SonarsLoading)
-				if (DronesLoading+1) mod Input.drone then
+				if (DronesLoading+1) mod Input.drone == 0 then
 					NewWeaponAvailable = drone
 				else
 					NewWeaponAvailable = null
 				end
 			[] sonar then
 				NewWeaponsState = stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading+1)
-				if (SonarsLoading+1) mod Input.sonar then
+				if (SonarsLoading+1) mod Input.sonar == 0 then
 					NewWeaponAvailable = sonar
 				else
 					NewWeaponAvailable = null
@@ -884,7 +884,7 @@ in
 		end
 	in
 		case WeaponsState
-		of stateWeapons(minesLoading:MinesLoading minesPlaced_ missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:_ sonarsLoading:SonarsLoading) then
+		of stateWeapons(minesLoading:MinesLoading minesPlaced:_ missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:_ sonarsLoading:SonarsLoading) then
 			% Choose a type of weapon to try and fire
 			WeaponTypeToFire
 		in
@@ -1020,7 +1020,7 @@ in
 				% Target is reachable but may be more damaged if we fire on the next turn
 				% => place it only if we will have another mine ready on the next turn
 				case WeaponsState
-				of stateWeapons(minesLoading:Loading minesPlaced:_ missilesLoading:_ dronesLoading:_ sonarsLoading:_) then
+				of stateWeapons(minesLoading:Loading minesPlaced:_ missilesLoading:_ dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
 					if (Loading+1) div Input.mine then
 						mine(FiringPosition)
 					else %wait to be closer to place the mine
@@ -1061,7 +1061,7 @@ in
 				% Target is reachable but may be more damaged if we fire on the next turn
 				% => fire only if we will have another missile ready on the next turn
 				case WeaponsState
-				of stateWeapons(minesLoading:_ minesPlaced:_ missilesLoading:Loading dronesLoading:_ sonarsLoading:_) then
+				of stateWeapons(minesLoading:_ minesPlaced:_ missilesLoading:Loading dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
 					if (Loading+1) div Input.missile then
 						missile(FiringPosition)
 					else %wait to be closer to fire

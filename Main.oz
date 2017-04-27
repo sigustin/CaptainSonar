@@ -523,7 +523,7 @@ in
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
 			%direction?
-			{Send P move(ID Position Direction)}
+			{Send P move(ID Position Direction)}  {Browse 'move'#ID#Position#Direction}
 			case ID of null then
 				skip
 			else
@@ -534,7 +534,7 @@ in
 				of surface then
 					{Send PortWindow surface(ID)}
 					{Delay Input.turnSurface}
-					{Send P dive}
+					{Send P dive} {Browse 'dive'}
 					{OnePlayerSimultaneous P}
 				else KindItem KindFire Mine in
 
@@ -542,7 +542,7 @@ in
 
 					{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-					{Send P chargeItem(ID1 KindItem)}
+					{Send P chargeItem(ID1 KindItem)} {Browse 'chargeitem'}
 					case ID1 of null then
 						skip
 					else
@@ -550,12 +550,12 @@ in
 						of null then
 							skip
 						else
-							{BroadcastItemCharged ID KindItem}
+							{BroadcastItemCharged ID KindItem} {Browse 'itemcharged'}
 						end
 
 						{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-						{Send P fireItem(ID2 KindFire)}
+						{Send P fireItem(ID2 KindFire)} {Browse 'fireitem'}
 						case ID2 of null then
 							skip
 						else
@@ -578,13 +578,13 @@ in
 									Killed = {MinePlaced ID}
 									{Send PortWindow putMine(ID pt(x:X y:Y))}
 								end
-								{BroadcastKilled Killed}
+								{BroadcastKilled Killed} {Browse 'killed'}
 							end
 
 							if {IsAlive P} then
 								{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-								{Send P fireMine(ID3 Mine)}
+								{Send P fireMine(ID3 Mine)} {Browse 'firemine'#ID3#Mine}
 								case ID3 of null then
 									skip
 								else
@@ -594,11 +594,12 @@ in
 									else Killed in
 										%broadcast and receive informations, change alive list
 										Killed = {MineExploded ID Mine.1}
-										{BroadcastKilled Killed}
+										{BroadcastKilled Killed} {Browse 'killed'}
 										{Send PortWindow removeMine(ID Mine.1)}
 									end
 								end
-
+								
+								{Browse 'end of oneplayersimultaneous'}
 								{OnePlayerSimultaneous P}
 							end
 						end
@@ -626,8 +627,8 @@ in
 
 	   %Launch one thread by player that simulate the actions of each one
 	   for P in PlayersPorts do
-	   		thread
-				{Send P dive}
+	   	thread
+				{Send P dive} {Browse 'dive'}
 				{OnePlayerSimultaneous P}
 			end
 		end
