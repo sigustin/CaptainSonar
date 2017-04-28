@@ -432,7 +432,6 @@ in
 				else
 					ReturnedState = State
 				end
-				ReturnedState = State
 				{Fct 'done say answer sonar'}
 			%-------- Flash info : player @ID is dead -----------------
 			[] sayDeath(ID) then
