@@ -50,7 +50,7 @@ in
 
 %%%% Style of game %%%%
 
-   IsTurnByTurn = false
+   IsTurnByTurn = true
 
 %%%% Description of the map %%%%
 
@@ -295,7 +295,9 @@ in
    NbPlayer = 2
    Players = [player000basicai player000basicai]
    Colors = [green blue]
-
+   %NbPlayer = 3
+   %Players = [basicAI basicAI basicAI]
+   %Colors = [red blue yellow]
 %%%% Thinking parameters (only in simultaneous) %%%%
 
    ThinkMin = 1%500

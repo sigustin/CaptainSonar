@@ -366,9 +366,9 @@ in
 								Killed = {MissileExplode ID Pos}
 							[] sonar then
 								Killed = {SonarActivated ID PlayerPort}
-							[] drone(row:X) then
+							[] drone(row X) then
 								Killed = {DroneActivated ID PlayerPort KindFire}
-							[] drone(column:Y) then
+							[] drone(column Y) then
 								Killed = {DroneActivated ID PlayerPort KindFire}
 							[] mine(pt(x:X y:Y)) then
 								{Send PortWindow putMine(ID pt(x:X y:Y))}
@@ -384,9 +384,9 @@ in
 								skip
 							else Killed in
 								%broadcast and receive informations, change alive list
-								Killed = {MineExploded ID Mine.1}
+								Killed = {MineExploded ID Mine}
 								{BroadcastKilled Killed}
-								{Send PortWindow removeMine(ID Mine.1)}
+								{Send PortWindow removeMine(ID Mine)}
 							end
 						end
 					end
@@ -569,9 +569,9 @@ in
 									Killed = {MissileExplode ID Pos}
 								[] sonar then
 									Killed = {SonarActivated ID P}
-								[] drone(column:X) then
+								[] drone(column X) then
 									Killed = {DroneActivated ID P KindFire}
-								[] drone(row:Y) then
+								[] drone(row Y) then
 									Killed = {DroneActivated ID P KindFire}
 								[] mine(pt(x:X y:Y)) then
 									Killed = {MinePlaced ID}
@@ -592,12 +592,12 @@ in
 										skip
 									else Killed in
 										%broadcast and receive informations, change alive list
-										Killed = {MineExploded ID Mine.1}
+										Killed = {MineExploded ID Mine}
 										{BroadcastKilled Killed} {Browse 'killed'}
-										{Send PortWindow removeMine(ID Mine.1)}
+										{Send PortWindow removeMine(ID Mine)}
 									end
 								end
-								
+
 								%{Browse 'end of oneplayersimultaneous'}
 								{OnePlayerSimultaneous P}
 							end
