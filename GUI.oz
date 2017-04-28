@@ -242,21 +242,21 @@ in
 				end
 				{RemoveItem Grid Handle}
 
-				GUI = td(action:OnClose
-				    return:WindowClosed
-				    lr(label(text:"One player just died!" width:40)
-				      glue:ew)
-					 lr(label(text:"Not everyone deserve to live, especially not him apparently."))
-				    button(text:"Ok" glue:ew
-					   action:OnClose
-					  )
-				   )
-			   proc {OnClose}
-					{Window close}
-			   end
-			   Window = {QTk.build GUI}
-			   {Window show}
-			   {Wait WindowClosed}
+				%GUI = td(action:OnClose
+				%    return:WindowClosed
+				    %lr(label(text:"One player just died!" width:40)
+				    %  glue:ew)
+				%	 lr(label(text:"Not everyone deserve to live, especially not him apparently."))
+				 %   button(text:"Ok" glue:ew
+				%	   action:OnClose
+				%	  )
+				%   )
+			   %proc {OnClose}
+			%		{Window close}
+			%   end
+			 %  Window = {QTk.build GUI}
+			 %  {Window show}
+			 %  {Wait WindowClosed}
 
 
 

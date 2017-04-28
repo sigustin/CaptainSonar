@@ -5,6 +5,7 @@ functor
 import
 	Player000RandomAI
    Player000BasicAI
+	PlayerBasicAI
    %%add player here and in the port generation
 export
    playerGenerator:PlayerGenerator
@@ -17,6 +18,8 @@ in
 	 		{Player000RandomAI.portPlayer Color ID}
 	 	[] player000basicai then
 	 		{Player000BasicAI.portPlayer Color ID}
+		[] basicAI then
+			{PlayerBasicAI.portPlayer Color ID}
 	 	else null
       end
    end
