@@ -3,8 +3,8 @@
 
 functor
 import
-	Player000RandomAI
-   Player000BasicAI
+	Player034RandomAI
+   Player034BasicAI
 	PlayerBasicAI
 	Player006target
 	Player006updown
@@ -16,10 +16,10 @@ define
 in
    fun {PlayerGenerator Kind Color ID} %@Kind must contain something only with minuscules
       case Kind
-	 	of player000randomai then 
-	 		{Player000RandomAI.portPlayer Color ID}
-	 	[] player000basicai then
-	 		{Player000BasicAI.portPlayer Color ID}
+	 	of player034randomai then 
+	 		{Player034RandomAI.portPlayer Color ID}
+	 	[] player034basicai then
+	 		{Player034BasicAI.portPlayer Color ID}
 		[] basicAI then
 			{PlayerBasicAI.portPlayer Color ID}
 		[] player006target then
