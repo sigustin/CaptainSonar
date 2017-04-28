@@ -513,7 +513,7 @@ in
 							if {IsAlive P} then
 								{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-								{Send P fireMine(ID3 Mine)} {Browse 'firemine'#ID3#Mine}
+								{Send P fireMine(ID3 Mine)} {Delay 1} {Browse 'firemine'#ID3#Mine}
 								case ID3 of null then
 									skip
 								else

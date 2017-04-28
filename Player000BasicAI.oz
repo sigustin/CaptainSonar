@@ -166,6 +166,7 @@ in
 						
 						ReturnedState = stateBasicAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) weaponsState:WeaponsState tracking:TrackingInfo)
 					else %something went wrong
+						ID = PlayerID
 						{ERR 'Move returned something with an invalid format'}
 						%return the same state as before
 						ReturnedState = State
@@ -253,6 +254,7 @@ in
 						Mine = MineExploding
 						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 					else %something went wrong
+						ID = PlayerID
 						{ERR 'ExplodeMine did not return a record correctly formatted'}
 						ReturnedState = State
 					end

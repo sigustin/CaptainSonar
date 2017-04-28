@@ -288,16 +288,20 @@ in
 
 %%%% Players description %%%%
 
-   %NbPlayer = 4
-   %Players = [player000randomai player000randomai player000randomai player000randomai]
+   NbPlayer = 4
+   Players = [player000randomai player000randomai player000randomai player000randomai]
    %Players = [player000basicai player000basicai player000basicai player000basicai]
-   %Colors = [green yellow red blue]
-   NbPlayer = 2
-   Players = [player000basicai player000basicai]
-   Colors = [green blue]
+   Colors = [green yellow red blue]
+   %NbPlayer = 2
+   %Players = [player000basicai player000basicai]
+   %Colors = [green blue]
    %NbPlayer = 3
    %Players = [basicAI basicAI basicAI]
    %Colors = [red blue yellow]
+   %NbPlayer = 3
+   %Players = [player000basicAI2 player000basicAI2 player000basicAI2]
+   %Colors = [red blue yellow]
+
 %%%% Thinking parameters (only in simultaneous) %%%%
 
    ThinkMin = 1%500
