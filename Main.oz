@@ -259,7 +259,7 @@ in
 
 	% @IsAlive : Check if the player that listen to the port is dead
 	fun {IsAlive PlayerPort}
-		Id
+		ID
 	in
 		{Send PlayerPort initPosition(ID _)}
 		case ID
@@ -449,7 +449,7 @@ in
 			%our player is alive
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 			%{Delay 1500}
-			
+
 			{Browse 'begin OnePlayerSimultaneous'}
 			%direction?
 			{Send P move(ID Position Direction)}  {Browse 'move'#ID#Position#Direction}
