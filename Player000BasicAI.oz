@@ -780,23 +780,42 @@ in
 		if {NoTrackingInfo TrackingInfo} then
 			sonar
 		else
-			fun {Loop TrackingInfo}
-				case TrackingInfo
-				of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
-					case X#Y
-					of certain(_)#certain(_) then
-						{ChooseMissileOrMineToLoad WeaponsState TrackingInfo}
-					else
-						{Loop Remainder}
+			Target = {GetTarget TrackingInfo}
+		in
+			if Target \= null then
+				{ChooseMissileOrMineToLoad WeaponsState TrackingInfo}
+			else
+				MostPreciseTarget = {GetMostPreciseTarget TrackingInfo}
+			in
+				case MostPreciseTarget
+				of pos(x:XInfo y:YInfo) then
+					case XInfo
+					of certain(_) then
+						case YInfo
+						of supposed(_) then drone
+						[] unknown then sonar
+						else %something went wrong
+							{ERR 'YInfo has an unexpected format'#YInfo}
+							sonar
+						end
+					[] supposed(_) then
+						case YInfo
+						of certain(_) then drone
+						[] supposed(_) then drone
+						[] unknown then sonar
+						else %something went wrong
+							{ERR 'YInfo has an unexpected format'#YInfo}
+							sonar
+						end
+					[] unknown then sonar
 					end
-				[] nil then drone
+				[] null then
+					sonar
 				else %something went wrong
-					{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
-					drone
+					{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
+					sonar
 				end
 			end
-		in
-			{Loop TrackingInfo}
 		end
 	end
 	
@@ -889,7 +908,7 @@ in
 			% Choose a type of weapon to try and fire
 			WeaponTypeToFire
 		in
-			if TrackingInfo == nil then
+			if {NoTrackingInfo TrackingInfo} then
 				WeaponTypeToFire = sonar
 			elseif {GetTarget TrackingInfo} \= null then
 				WeaponTypeToFire = {ChooseMissileOrMineToFire WeaponsState}
