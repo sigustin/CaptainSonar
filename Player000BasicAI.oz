@@ -1525,15 +1525,15 @@ in
 	%                      Returns the number of damages taken and the new state (with the life left)
 	fun {ComputeDamage ExplosionPosition State}
 		case State
-		of stateRandomAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState) then
+		of stateBasicAI(life:Life locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState tracking:TrackingInfo) then
 			Distance = {Abs (PlayerPosition.x-ExplosionPosition.x)}+{Abs (PlayerPosition.y-ExplosionPosition.y)}
 		in
 			if Distance >= 2 then %Too far => no damage
 				0#State
 			elseif Distance == 1 then %1 damage
-				1#stateRandomAI(life:Life-1 locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState)
+				1#stateBasicAI(life:Life-1 locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState tracking:TrackingInfo)
 			else %Distance == 0 => 2 damages
-				2#stateRandomAI(life:Life-2 locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState)
+				2#stateBasicAI(life:Life-2 locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState tracking:TrackingInfo)
 			end
 		else %something went wrong
 			{ERR 'PlayerState has an invalid format'#State}
