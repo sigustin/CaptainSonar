@@ -448,9 +448,10 @@ in
 		if {IsAlive P} andthen {NumberAlive PlayersPorts 0}>1 then ID Position Direction in
 			%our player is alive
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
+			%{Delay 1500}
 
 			%direction?
-			{Send P move(ID Position Direction)}  {Browse 'move'#ID#Position#Direction}
+			{Send P move(ID Position Direction)}  %{Browse 'move'#ID#Position#Direction}
 			case ID of null then
 				skip
 			else
