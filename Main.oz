@@ -448,7 +448,6 @@ in
 		if {IsAlive P} andthen {NumberAlive PlayersPorts 0}>1 then ID Position Direction in
 			%our player is alive
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
-			%{Delay 1500}
 
 			%{Browse 'begin OnePlayerSimultaneous'}
 			%direction?

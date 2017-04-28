@@ -298,6 +298,10 @@ in
    %NbPlayer = 3
    %Players = [basicAI basicAI basicAI]
    %Colors = [red blue yellow]
+   %NbPlayer = 3
+   %Players = [player000basicAI2 player000basicAI2 player000basicAI2]
+   %Colors = [red blue yellow]
+
 %%%% Thinking parameters (only in simultaneous) %%%%
 
    ThinkMin = 1%500
