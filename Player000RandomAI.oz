@@ -216,9 +216,12 @@ in
 				else
 					ID = PlayerID
 					case {ExplodeMine WeaponsState}
-					of MineExploding#NewWeaponsState then
-						Mine = MineExploding
+					of mine(MinePosition)#NewWeaponsState then
+						Mine = MinePosition
 						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
+					[] null#NewWeaponsState then
+						Mine = null
+						ReturnedState = State
 					else %something went wrong
 						{ERR 'ExplodeMine did not return a record correctly formatted'}
 						ReturnedState = State
@@ -572,7 +575,7 @@ in
 		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
 	in
 		% Check the distances
-		if DistanceFromPlayer >= Input.minDistanceMine andthen DistanceFromPlayer =< Input.maxDistanceMine andthen {PositionIsValid RandomPosition} then RandomPosition
+		if DistanceFromPlayer >= Input.minDistanceMine andthen DistanceFromPlayer =< Input.maxDistanceMine andthen {PositionIsValid RandomPosition} then mine(RandomPosition)
 		else {PlaceMine PlayerPosition}
 		end
 	end
@@ -620,7 +623,7 @@ in
 		case WeaponsState
 		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
 			case WeaponFired
-			of pt(x:_ y:_) then stateWeapons(nbMines:NbMines-1 minesLoading:MinesLoading minesPlaced:WeaponFired|MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			of mine(pt(x:_ y:_)) then stateWeapons(nbMines:NbMines-1 minesLoading:MinesLoading minesPlaced:WeaponFired|MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] missile then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles-1 missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] drone then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] sonar then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars-1 sonarsLoading:SonarsLoading)

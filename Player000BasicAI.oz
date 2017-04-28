@@ -254,9 +254,12 @@ in
 				else
 					ID = PlayerID
 					case {ExplodeMine WeaponsState TrackingInfo}
-					of MineExploding#NewWeaponsState then
-						Mine = MineExploding
+					of mine(MinePosition)#NewWeaponsState then
+						Mine = MinePosition
 						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
+					[] null#NewWeaponsState then
+						Mine = null
+						ReturnedState = State
 					else %something went wrong
 						{ERR 'ExplodeMine did not return a record correctly formatted'}
 						ReturnedState = State
@@ -1172,7 +1175,7 @@ in
 		case WeaponsState
 		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 			case WeaponFired
-			of pt(x:_ y:_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
+			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			[] missile then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading-Input.missile dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			[] drone(row _) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
 			[] drone(column _) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
@@ -1208,20 +1211,20 @@ in
 					null
 				elseif DistanceExplosionTarget == 0 then
 					% Target is reachable => place the mine
-					FiringPosition
+					mine(FiringPosition)
 				else %DistanceExplosionTarget == 1
 					% Target is reachable but may be more damaged if we fire on the next turn
 					% => place it only if we will have another mine ready on the next turn
 					case WeaponsState
 					of stateWeapons(minesLoading:Loading minesPlaced:_ missilesLoading:_ dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
 						if (Loading+1) div Input.mine then
-							FiringPosition
+							mine(FiringPosition)
 						else %wait to be closer to place the mine
 							null
 						end
 					else %something went wrong
 						{ERR 'WeaponsState has an invalid format'#WeaponsState}
-						FiringPosition
+						mine(FiringPosition)
 					end
 				end
 			end

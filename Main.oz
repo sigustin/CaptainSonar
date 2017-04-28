@@ -450,9 +450,9 @@ in
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 			%{Delay 1500}
 
-			{Browse 'begin OnePlayerSimultaneous'}
+			%{Browse 'begin OnePlayerSimultaneous'}
 			%direction?
-			{Send P move(ID Position Direction)}  %{Browse 'move'#ID#Position#Direction}
+			{Send P move(ID Position Direction)} %{Browse 'move'#ID#Position#Direction}
 			case ID of null then
 				skip
 			else
@@ -471,7 +471,7 @@ in
 
 					{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-					{Send P chargeItem(ID1 KindItem)} %Browse 'chargeitem'}
+					{Send P chargeItem(ID1 KindItem)} %{Browse 'chargeitem'}
 					case ID1 of null then
 						skip
 					else

@@ -293,7 +293,7 @@ in
    %Players = [player000basicai player000basicai player000basicai player000basicai]
    %Colors = [green yellow red blue]
    NbPlayer = 2
-   Players = [player000basicai player000basicai]
+   Players = [player000basicai player000randomai]
    Colors = [green blue]
    %NbPlayer = 3
    %Players = [basicAI basicAI basicAI]
