@@ -6,6 +6,8 @@ import
 	Player034RandomAI
    Player034BasicAI
 	PlayerBasicAI
+	Player006target
+	Player006updown
    %%add player here and in the port generation
 export
    playerGenerator:PlayerGenerator
@@ -20,6 +22,10 @@ in
 	 		{Player034BasicAI.portPlayer Color ID}
 		[] basicAI then
 			{PlayerBasicAI.portPlayer Color ID}
+		[] player006target then
+			{Player006target.portPlayer Color ID}
+		[] player006updown then
+			{Player006updown.portPlayer Color ID}
 	 	else null
       end
    end

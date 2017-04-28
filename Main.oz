@@ -208,9 +208,10 @@ in
 	fun {SonarActivated ID PID}
 		for P in PlayersPorts do
 			local IDRcv Answer in
-				{Send P sayPassingSonar(IDRcv Answer)}
-				{Browse PID#'passing sonar'#IDRcv#Answer}
-				{Send PID sayAnswerSonar(IDRcv Answer)}
+				if {IsAlive P} then
+					{Send P sayPassingSonar(IDRcv Answer)}
+					{Send PID sayAnswerSonar(IDRcv Answer)}
+				end
 			end
 		end
 		nil
@@ -220,9 +221,10 @@ in
 	fun {DroneActivated ID PID Drone}
 		for P in PlayersPorts do
 			local IDRcv Answer in
-				{Send P sayPassingDrone(Drone IDRcv Answer)}
-				%{Browse PID#'passing drone'#IDRcv#Answer}
-				{Send PID sayAnswerDrone(Drone IDRcv Answer)}
+				if {IsAlive P} then
+					{Send P sayPassingDrone(Drone IDRcv Answer)}
+					{Send PID sayAnswerDrone(Drone IDRcv Answer)}
+				end
 			end
 		end
 		nil

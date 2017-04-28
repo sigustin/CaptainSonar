@@ -5,6 +5,7 @@ functor
 import
 	QTk at 'x-oz://system/wp/QTk.ozf'
 	Input
+OS
 export
 	portWindow:StartWindow
 
@@ -232,8 +233,8 @@ in
 		case State
 		of nil then nil
 		[] guiPlayer(id:ID score:HandleScore submarine:Handle mines:M path:P)|Next then
-			{HandleScore set(0)}
 			if (ID == WantedID) then
+				{HandleScore set(0)}
 				for H in P do
 					{RemoveItem Grid H}
 				end
@@ -257,7 +258,13 @@ in
 			 %  Window = {QTk.build GUI}
 			 %  {Window show}
 			 %  {Wait WindowClosed}
-
+			local
+				Command = play
+				Args = './fail-trombone-01.mp3'|nil
+				Stdin Stdout Pid
+			in
+				{OS.pipe Command Args Pid Stdin#Stdout}
+			end
 
 
 				Next
