@@ -212,14 +212,16 @@ in
 					NewWeaponsState
 				in
 					ID = PlayerID
-					{Browse 'fireItem'#'type'#FiredWeaponType}
 					if FiredWeaponType \= null then
-						{Browse 'test'}
 						% Fire a weapon of type @FiredWeaponType
 						case LocationState
 						of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
+							/*if KindFire \= null then
+								{Browse 'firing'#KindFire}
+								{Browse 'tracks'#TrackingInfo}
+							end*/
 						else %something went wrong
 							{ERR 'LocationState has an invalid format'#LocationState}
 							ReturnedState = State
