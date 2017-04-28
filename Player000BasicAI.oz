@@ -1130,7 +1130,7 @@ in
 		case WeaponsState
 		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 			case WeaponFired
-			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
+			of pt(x:_ y:_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			[] missile then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading-Input.missile dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			[] drone(row _) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
 			[] drone(column _) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
@@ -1166,20 +1166,20 @@ in
 					null
 				elseif DistanceExplosionTarget == 0 then
 					% Target is reachable => place the mine
-					mine(FiringPosition)
+					FiringPosition
 				else %DistanceExplosionTarget == 1
 					% Target is reachable but may be more damaged if we fire on the next turn
 					% => place it only if we will have another mine ready on the next turn
 					case WeaponsState
 					of stateWeapons(minesLoading:Loading minesPlaced:_ missilesLoading:_ dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
 						if (Loading+1) div Input.mine then
-							mine(FiringPosition)
+							FiringPosition
 						else %wait to be closer to place the mine
 							null
 						end
 					else %something went wrong
 						{ERR 'WeaponsState has an invalid format'#WeaponsState}
-						mine(FiringPosition)
+						FiringPosition
 					end
 				end
 			end
@@ -1380,7 +1380,7 @@ in
 				case XInfo#YInfo
 				of certain(X)#certain(Y) then
 					case MineToTest
-					of mine(Pos) then
+					of Pos then
 						Distance = {Abs (X-Pos.x)}+{Abs (Y-Pos.y)}
 					in
 						if Distance < 2 then true
