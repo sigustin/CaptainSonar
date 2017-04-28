@@ -1737,10 +1737,6 @@ in
 	in
 		{Loop TrackingInfo ID nil}
 	end
-<<<<<<< HEAD
-
-	% @DroneAnswered : A drone came back with the answers @ID and @Answer
-=======
 
 	% @GetLastDroneFired : Returns the last drone that was fired
 	fun {GetLastDroneFired WeaponsState}
@@ -1756,7 +1752,6 @@ in
 	end
 
 	% @DroneAnswered : A drone came back saying @ID is on row or column @RowOrColumn
->>>>>>> 65041e1a3bbbf9eab2cd58cf42b9b8f5306e3a3d
 	%                  Updates the tracking info and returns it
 	fun {DroneAnswered TrackingInfo ID RowOrColumn}
 		fun {Loop TrackingInfo ID RowOrColumn Acc}
@@ -1786,7 +1781,7 @@ in
 								UpdatedX = certain(XDrone)
 								UpdatedY = Y
 							end
-							
+
 						[] row(YDrone) then
 							case Y
 							of unknown then
