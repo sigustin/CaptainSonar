@@ -267,14 +267,22 @@ in
 				end
 			%------- Flash info : player @ID has moved in the direction @Direction ----------
 			[] sayMove(ID Direction) then
-				UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
-			in
-				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+				if ID \= PlayerID then
+					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
+				in
+					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+				else
+					ReturnedState = State
+				end
 			%-------- Flash info : player @ID has made surface --------------
 			[] saySurface(ID) then
-				UpdatedTrackingInfo = {PlayerMadeSurface TrackingInfo ID}
-			in
-				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+				if ID \= PlayerID then
+					UpdatedTrackingInfo = {PlayerMadeSurface TrackingInfo ID}
+				in
+					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+				else
+					ReturnedState = State
+				end
 			%------- Flash info : player @ID has the item @KindItem ----------
 			[] sayCharge(ID KindItem) then
 				%Ignore this
