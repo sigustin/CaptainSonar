@@ -288,10 +288,13 @@ in
 
 %%%% Players description %%%%
 
-   NbPlayer = 4
+   %NbPlayer = 4
    %Players = [player000randomai player000randomai player000randomai player000randomai]
-   Players = [player000basicai player000basicai player000basicai player000basicai]
-   Colors = [green yellow red blue]
+   %Players = [player000basicai player000basicai player000basicai player000basicai]
+   %Colors = [green yellow red blue]
+   NbPlayer = 2
+   Players = [player000basicai player000basicai]
+   Colors = [green blue]
 
 %%%% Thinking parameters (only in simultaneous) %%%%
 

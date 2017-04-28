@@ -221,6 +221,7 @@ in
 							if KindFire \= null then
 								{Browse 'firing'#KindFire}
 								{Browse 'tracks'#TrackingInfo}
+								{Browse '#tracks'#{Length TrackingInfo}}
 							end
 						else %something went wrong
 							{ERR 'LocationState has an invalid format'#LocationState}
@@ -1072,7 +1073,7 @@ in
 					% => fire only if we will have another missile ready on the next turn
 					case WeaponsState
 					of stateWeapons(minesLoading:_ minesPlaced:_ missilesLoading:Loading dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
-						if (Loading+1) div Input.missile then
+						if (Loading+1) div Input.missile > 0 then
 							missile(FiringPosition)
 						else %wait to be closer to fire
 							null
@@ -1391,10 +1392,10 @@ in
 								
 								if {CoordIsOnGrid NewCoord x} then
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(NewCoord) y:Y)|nil} TrackingInfo}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(NewCoord) y:Y)|nil} Remainder}
 								else
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:unknown y:Y)|nil} TrackingInfo}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:unknown y:Y)|nil} Remainder}
 								end
 							[] certain(Coord) then
 								NewCoord
@@ -1405,14 +1406,14 @@ in
 								
 								if {CoordIsOnGrid NewCoord x} then
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:certain(NewCoord) y:Y)|nil} TrackingInfo}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:certain(NewCoord) y:Y)|nil} Remainder}
 								else
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(Coord) y:Y)|nil} TrackingInfo}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(Coord) y:Y)|nil} Remainder}
 								end
 							else % coord is @unknown => don't do anything
 								%return
-								{Append {Append Acc Track|nil} TrackingInfo}
+								{Append {Append Acc Track|nil} Remainder}
 							end
 						elseif Direction == west orelse Direction == east then%moving along Y
 							case Y
@@ -1425,10 +1426,10 @@ in
 								
 								if {CoordIsOnGrid NewCoord y} then
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(NewCoord))|nil} TrackingInfo}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(NewCoord))|nil} Remainder}
 								else
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:unknown)|nil} TrackingInfo}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:unknown)|nil} Remainder}
 								end
 							[] certain(Coord) then
 								NewCoord
@@ -1439,18 +1440,18 @@ in
 								
 								if {CoordIsOnGrid NewCoord y} then
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:certain(NewCoord))|nil} TrackingInfo}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:certain(NewCoord))|nil} Remainder}
 								else
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(Coord))|nil} TrackingInfo}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(Coord))|nil} Remainder}
 								end
 							else %coord is @unknown => don't do anything
 								%return
-								{Append {Append Acc Track|nil} TrackingInfo}
+								{Append {Append Acc Track|nil} Remainder}
 							end
 						elseif Direction == surface then
 							%return
-							{Append {Append Acc trackingInfo(id:ID surface:true x:X y:Y)} TrackingInfo}
+							{Append {Append Acc trackingInfo(id:ID surface:true x:X y:Y)} Remainder}
 						else %something went wrong
 							{ERR 'Direction given is invalid'#Direction}
 							{Append {Append Acc Track|nil} TrackingInfo}
@@ -1481,7 +1482,7 @@ in
 				of trackingInfo(id:CurrentID surface:Surface x:X y:Y) then
 					if CurrentID == ID then %found the player's info to update
 						%return
-						{Append {Append Acc trackingInfo(id:CurrentID surface:true x:X y:Y)|nil} TrackingInfo}
+						{Append {Append Acc trackingInfo(id:CurrentID surface:true x:X y:Y)|nil} Remainder}
 					else
 						{Loop Remainder ID {Append Acc Track|nil}}
 					end
@@ -1544,8 +1545,8 @@ in
 						end
 						
 						%return
-						{Append {Append Acc UpdatedTrack|nil} TrackingInfo}
-					else
+						{Append {Append Acc UpdatedTrack|nil} Remainder}
+					else %keep searching the list
 						{Loop Remainder ID Answer {Append Acc Track|nil}}
 					end
 				else %something went wrong
@@ -1605,13 +1606,13 @@ in
 							
 							% Add this new track in the tracking info
 							%return
-							{Append {Append Acc UpdatedTrack|nil} TrackingInfo}
+							{Append {Append Acc UpdatedTrack|nil} Remainder}
 						else %something went wrong
 							{ERR 'Answer given to sonar has an invalid format'#Answer}
 							%return
 							{Append Acc TrackingInfo}
 						end
-					else
+					else %keep searching the list
 						{Loop Remainder ID Answer {Append Acc Track|nil}}
 					end
 				else %something went wrong
