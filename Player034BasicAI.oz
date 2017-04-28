@@ -21,6 +21,9 @@ define
 		skip
 		%{Browser.browse 'fct'#Msg}
 	end
+	proc {DEBUG Msg}
+		{Browser.browse 'Warning:Player034BasicAI'#Msg}
+	end
 	
 	StartPlayer
 	TreatStream
@@ -1865,6 +1868,7 @@ in
 								end
 							[] certain(X) then
 								if X == XDrone then %should never happen
+									{DEBUG 'Certainty about a coordinate was incorrect'#X#'should be'#XDrone}
 									UpdatedX = unknown
 									UpdatedY = YInfo
 								else
@@ -1893,7 +1897,8 @@ in
 									end
 								end
 							[] certain(Y) then
-								if Y == YInfo then
+								if Y == YDrone then %should never happen
+									{DEBUG 'Certainty about a coordinate was incorrect'#Y#'should be'#YDrone}
 									UpdatedY = unknown
 									UpdatedX = XInfo
 								else
