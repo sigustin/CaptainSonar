@@ -1579,18 +1579,18 @@ in
 						of pt(x:XSonar y:YSonar) then
 							case X
 							of unknown then
-								UpdatedX = XSonar
+								UpdatedX = supposed(XSonar)
 							[] supposed(_) then
-								UpdatedX = XSonar %TODO should we really update this?
+								UpdatedX = supposed(XSonar) %TODO should we really update this?
 							else %certain => don't update
 								UpdatedX = X
 							end
 							
 							case Y
 							of unknown then
-								UpdatedY = YSonar
+								UpdatedY = supposed(YSonar)
 							[] supposed(_) then
-								UpdatedY = YSonar %TODO should we really update this?
+								UpdatedY = supposed(YSonar) %TODO should we really update this?
 							else %certain => don't update
 								UpdatedY = Y
 							end
