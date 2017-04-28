@@ -331,11 +331,11 @@ in
 					case LocationState
 					of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 						case Drone
-						of drone(row:Row) then
+						of drone(row Row) then
 							if PlayerPosition.x == Row then Answer = true
 							else Answer = false
 							end
-						[] drone(column:Column) then
+						[] drone(column Column) then
 							if PlayerPosition.x == Column then Answer = true
 							else Answer = false
 							end
@@ -355,10 +355,10 @@ in
 					case WeaponsState
 					of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 						case Drone
-						of drone(column:X) then
+						of drone(column X) then
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
-						[] drone(row:Y) then
+						[] drone(row Y) then
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
@@ -1132,8 +1132,8 @@ in
 			case WeaponFired
 			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			[] missile then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading-Input.missile dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
-			[] drone(row:_) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
-			[] drone(column:_) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
+			[] drone(row _) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
+			[] drone(column _) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
 			[] sonar then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading-Input.sonar)
 			else WeaponsState
 			end
@@ -1341,24 +1341,24 @@ in
 		if RowOrColumn == null then %this shouldn't happen, but if it does, fire randomly
 			case {OS.rand} mod 2
 			of 0 then %row
-				drone(row:({OS.rand} mod Input.nColumn)+1)
+				drone(row ({OS.rand} mod Input.nColumn)+1)
 			[] 1 then %column
-				drone(column:({OS.rand} mod Input.nRow)+1)
+				drone(column ({OS.rand} mod Input.nRow)+1)
 			else %something went wrong
 				{ERR 'Randomized out-of-bounds'}
-				drone(row:({OS.rand} mod Input.nRow)+1) %because we have to return something valid
+				drone(row ({OS.rand} mod Input.nRow)+1) %because we have to return something valid
 			end
 		else
 			case RowOrColumn
 			of column(Column) then
 				%return
-				drone(column:Column)
+				drone(column Column)
 			[] row(Row) then
 				%return
-				drone(row:Row)
+				drone(row Row)
 			else %something went wrong
 				{ERR 'RowOrColumn returned an invalid formatted value'#RowOrColumn}
-				drone(column:({OS.rand} mod Input.nColumn)+1) %because we have to return something
+				drone(column ({OS.rand} mod Input.nColumn)+1) %because we have to return something
 			end
 		end
 	end
