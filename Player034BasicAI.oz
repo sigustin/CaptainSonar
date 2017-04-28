@@ -11,20 +11,19 @@ import
 export
 	portPlayer:StartPlayer
 define
+	%Debug procedures
 	proc {ERR Msg}
 		{Browser.browse 'There was a problem in Player034BasicAI'#Msg}
-	end
-	proc {Browse Msg}
-		{Browser.browse Msg}
 	end
 	proc {Fct Msg}
 		skip
 		%{Browser.browse 'fct'#Msg}
 	end
-	proc {DEBUG Msg}
+	proc {WARN Msg}
 		{Browser.browse 'Warning:Player034BasicAI'#Msg}
 	end
 	
+	%Port object procedures
 	StartPlayer
 	TreatStream
 	Behavior
@@ -242,10 +241,6 @@ in
 							{ERR 'LocationState has an invalid format'#LocationState}
 							ReturnedState = State
 						end
-						/*if KindFire \= null then
-							{Browse 'firing'#KindFire}
-							{Browse TrackingInfo}
-						end*/
 					else %decided not to fire anything
 						KindFire = null
 						ReturnedState = State
@@ -300,7 +295,6 @@ in
 					UpdatedTrackingInfo
 				in
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
-					%{Browse PlayerID#'af moved'#UpdatedTrackingInfo}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
 					ReturnedState = State
@@ -396,7 +390,6 @@ in
 			%------ This player's drone came back with answers ------------
 			[] sayAnswerDrone(Drone ID Answer) then
 				{Fct PlayerID#'say answer drone'}
-				%{Browse PlayerID#'begin answer drone'}
 				if ID \= PlayerID andthen ID \= null then %Not @this
 					UpdatedTrackingInfo
 					Drone = {GetLastDroneFired WeaponsState}
@@ -404,17 +397,10 @@ in
 					if Answer then
 						case Drone
 						of drone(column X) then
-							%{Browse 'calling droneanswered'}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
-							%{Browse PlayerID#'af drone'#UpdatedTrackingInfo}
-							%{Browse 'done droneanswered'}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row Y) then
-							%{Browse 'calling droneanswered'}
-							%{Browse PlayerID#'drone'#TrackingInfo}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
-							%{Browse PlayerID#'af drone'#UpdatedTrackingInfo}
-							%{Browse 'done droneanswered'}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
 							{ERR 'Drone has an invalid format'#Drone}
@@ -436,7 +422,6 @@ in
 				else
 					ReturnedState = State
 				end
-				%{Browse PlayerID#'end anwser drone'}
 				{Fct PlayerID#'done say answer drone'}
 			%----- A sonar is detecting => this player gives coordinates (one right, one wrong) ------
 			[] sayPassingSonar(?ID ?Answer) then
@@ -454,19 +439,14 @@ in
 			%-------- This player's sonar probing answers ------------------
 			[] sayAnswerSonar(ID Answer) then
 				{Fct PlayerID#'say answer sonar'}
-				%{Browse PlayerID#'say answer sonar'}
 				if ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo
 				in
-					%{Browse 'calling sonaranswered'#Answer}
 					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
-					%{Browse PlayerID#'af sonar'#UpdatedTrackingInfo}
-					%{Browse 'done sonaranswered'}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
 					ReturnedState = State
 				end
-				%{Browse PlayerID#'done say answer sonar'}
 				{Fct PlayerID#'done say answer sonar'}
 			%-------- Flash info : player @ID is dead -----------------
 			[] sayDeath(ID) then
@@ -485,7 +465,7 @@ in
 				ReturnedState = State
 			%------- DEBUG : print yourself ------------------------
 			[] print then
-				{Browse PlayerID#State}
+				{Fct PlayerID#State}
 				ReturnedState = State
 			else %Unknown message => don't do anything
 				{Fct PlayerID#'other msg'}
@@ -1758,7 +1738,6 @@ in
 	%                  Updates the tracking info and returns it
 	fun {DroneAnswered TrackingInfo ID RowOrColumn}
 		fun {Loop TrackingInfo ID RowOrColumn Acc}
-			%{Browse 'drone loop'#TrackingInfo#ID#RowOrColumn#Acc}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track
@@ -1868,7 +1847,7 @@ in
 								end
 							[] certain(X) then
 								if X == XDrone then %should never happen
-									{DEBUG 'Certainty about a coordinate was incorrect'#X#'should be'#XDrone}
+									{WARN 'Certainty about a coordinate was incorrect'#X#'should be'#XDrone}
 									UpdatedX = unknown
 									UpdatedY = YInfo
 								else
@@ -1898,7 +1877,7 @@ in
 								end
 							[] certain(Y) then
 								if Y == YDrone then %should never happen
-									{DEBUG 'Certainty about a coordinate was incorrect'#Y#'should be'#YDrone}
+									{WARN 'Certainty about a coordinate was incorrect'#Y#'should be'#YDrone}
 									UpdatedY = unknown
 									UpdatedX = XInfo
 								else
@@ -1933,7 +1912,6 @@ in
 	%                  Updates the tracking info and returns it
 	fun {SonarAnswered TrackingInfo ID Answer}
 		fun {Loop TrackingInfo ID Answer Acc}
-			%{Browse 'sonar loop'#TrackingInfo#ID#Answer#Acc}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track

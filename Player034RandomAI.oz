@@ -11,13 +11,16 @@ import
 export
 	portPlayer:StartPlayer
 define
+	%Debug procedures
 	proc {ERR Msg}
 		{Browser.browse 'There was a problem in Player034RandomAI'#Msg}
 	end
-	proc {Browse Msg}
-		{Browser.browse 'Player034RandomAI'#Msg}
+	proc {Fct Msg}
+		skip
+		%{Browser.browse 'fct'#Msg}
 	end
-
+	
+	%Port object procedures
 	StartPlayer
 	TreatStream
 	Behavior
@@ -345,7 +348,7 @@ in
 				ReturnedState = State
 			%--------- DEBUG : print yourself -------------------------
 			[] print then
-				{Browse PlayerID#State}
+				{Fct PlayerID#State}
 				ReturnedState = State
 			else %Unknown message => don't do anything
 				ReturnedState = State

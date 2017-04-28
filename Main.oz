@@ -417,7 +417,7 @@ in
 	proc {TurnByTurn NTurn PlayersAtSurface PlayersAtSurfaceWaitingTurn}
 		%display information
 	   {Browser.browse 'Turn number : '#NTurn#'out of'#NTurnMax}
-	   %{Delay 1000}
+
 		%if NTurnMax is reached stop
 		if NTurn<NTurnMax then
 			NumAlive NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn in
