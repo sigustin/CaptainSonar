@@ -238,7 +238,7 @@ in
 	fun {MineExploded ID Pos}
 		fun {PlayerByPlayer PlayersPorts}
 			case PlayersPorts
-			of P|T then Message in
+			of P|T then Message A B in
 				{Send P sayMineExplode(ID Pos Message)}
 				case Message
 				of sayDeath(IDDeath) then
@@ -261,8 +261,8 @@ in
 	fun {IsAlive PlayerPort}
 		Id
 	in
-		{Send PlayerPort initPosition(Id _)}
-		case Id
+		{Send PlayerPort initPosition(ID _)}
+		case ID
 		of null then
 			false
 		else
@@ -555,7 +555,7 @@ in
 	   %Launch one thread by player that simulate the actions of each one
 	   for P in PlayersPorts do
 	   	thread
-				{Send P dive} %{Browse 'dive'}
+				{Send P dive}
 				{OnePlayerSimultaneous P}
 			end
 		end
