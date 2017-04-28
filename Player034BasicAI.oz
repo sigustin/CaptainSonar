@@ -291,7 +291,7 @@ in
 			%------- Flash info : player @ID has moved in the direction @Direction ----------
 			[] sayMove(ID Direction) then
 				{Fct PlayerID#'say move'}
-				if ID \= PlayerID then
+				if ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
 				in
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
@@ -302,7 +302,7 @@ in
 			%-------- Flash info : player @ID has made surface --------------
 			[] saySurface(ID) then
 				{Fct PlayerID#'say surface'}
-				if ID \= PlayerID then
+				if ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo = {PlayerMadeSurface TrackingInfo ID}
 				in
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
@@ -451,9 +451,13 @@ in
 			%-------- Flash info : player @ID is dead -----------------
 			[] sayDeath(ID) then
 				{Fct PlayerID#'say dead'}
-				UpdatedTrackingInfo = {PlayerDead ID TrackingInfo}
-			in
-				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+				if ID \= null then
+					UpdatedTrackingInfo = {PlayerDead ID TrackingInfo}
+				in
+					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+				else
+					ReturnedState = State
+				end
 				{Fct PlayerID#'done say dead'}
 			%-------- Flash info : player @ID has taken @Damage damages ------------
 			[] sayDamageTaken(ID Damage LifeLeft) then
