@@ -218,14 +218,13 @@ in
 						of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
-							if KindFire \= null then
-								{Browse 'firing'#KindFire}
-								{Browse 'tracks'#TrackingInfo}
-								{Browse '#tracks'#{Length TrackingInfo}}
-							end
 						else %something went wrong
 							{ERR 'LocationState has an invalid format'#LocationState}
 							ReturnedState = State
+						end
+						if KindFire \= null then
+							{Browse 'firing'#KindFire}
+							{Browse TrackingInfo}
 						end
 					else %decided not to fire anything
 						KindFire = null
@@ -1168,16 +1167,30 @@ in
 			case TrackingInfo
 			of Track|Remainder then
 				case Track
-				of trackingInfo(id:_ surface:_ x:X y:Y) then
-					case X
-					of supposed(_) then
-						pos(x:X y:Y)
-					else
-						case Y
-						of supposed(_) then
-							pos(x:X y:Y)
+				of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+					if {OS.rand} mod 2 == 0 then
+						case XInfo
+						of supposed(X) then
+							column(X)
 						else
-							{Loop Remainder}
+							case YInfo
+							of supposed(Y) then
+								row(Y)
+							else
+								{Loop Remainder}
+							end
+						end
+					else
+						case YInfo
+						of supposed(Y) then
+							row(Y)
+						else
+							case XInfo
+							of supposed(X) then
+								column(X)
+							else
+								{Loop Remainder}
+							end
 						end
 					end
 				else %something went wrong
@@ -1192,9 +1205,9 @@ in
 			end
 		end
 		
-		TargetPosition = {Loop TrackingInfo}
+		RowOrColumn = {Loop TrackingInfo}
 	in
-		if TargetPosition == null then %this shouldn't happen, but if it does, fire randomly
+		if RowOrColumn == null then %this shouldn't happen, but if it does, fire randomly
 			case {OS.rand} mod 2
 			of 0 then %row
 				drone(row:({OS.rand} mod Input.nColumn)+1)
@@ -1205,42 +1218,15 @@ in
 				drone(row:({OS.rand} mod Input.nRow)+1) %because we have to return something valid
 			end
 		else
-			case TargetPosition
-			of pos(x:X y:Y) then
-				%Choose randomly between @X and @Y (but fire only if it's a supposed coordinate)
-				case {OS.rand} mod 2
-				of 0 then
-					case X
-					of supposed(Column) then
-						drone(column:Column)
-					else
-						case Y
-						of supposed(Row) then
-							drone(row:Row)
-						else %something went wrong
-							{ERR 'TargetPosition was returned as an incorrect value'#TargetPosition}
-							{FireDrone TrackingInfo}
-						end
-					end
-				[] 1 then
-					case Y
-					of supposed(Row) then
-						drone(row:Row)
-					else
-						case X
-						of supposed(Column) then
-							drone(column:Column)
-						else %something went wrong
-							{ERR 'TargetPosition was returned as an incorrect value'#TargetPosition}
-							{FireDrone TrackingInfo}
-						end
-					end
-				else %something went wrong
-					{ERR 'Randomized out-of-bound'}
-					{FireDrone TrackingInfo}
-				end
+			case RowOrColumn
+			of column(Column) then
+				%return
+				drone(column:Column)
+			[] row(Row) then
+				%return
+				drone(row:Row)
 			else %something went wrong
-				{ERR 'TargetPosition returned an invalid formatted value'#TargetPosition}
+				{ERR 'RowOrColumn returned an invalid formatted value'#RowOrColumn}
 				drone(column:({OS.rand} mod Input.nColumn)+1) %because we have to return something
 			end
 		end

@@ -522,7 +522,7 @@ in
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
 			%direction?
-			{Send P move(ID Position Direction)}  %{Browse 'move'#ID#Position#Direction}
+			{Send P move(ID Position Direction)}  {Browse 'move'#ID#Position#Direction}
 			case ID of null then
 				skip
 			else
