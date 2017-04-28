@@ -49,7 +49,7 @@ in
 
 %%%% Style of game %%%%
 
-   IsTurnByTurn = true
+   IsTurnByTurn = false
 
 %%%% Description of the map %%%%
 
@@ -81,7 +81,8 @@ in
       {MakeRow NRow}
    end
 
-   Map = {MakeMap}%[[0 0 0 0 0 0 0 0 0 0]
+   Map = {MakeMap}
+      %[[0 0 0 0 0 0 0 0 0 0]
 	  %[0 0 0 0 0 0 0 0 0 0]
 	  %[0 0 0 1 1 0 0 0 0 0]
 	  %[0 0 1 1 0 0 1 0 0 0]
@@ -94,30 +95,14 @@ in
 
 %%%% Players description %%%%
 
-   NbPlayer = 4
-   %Players = [player000randomai player000randomai player000randomai player000randomai]
-   %Players = [player000basicai player000basicai player000basicai player000basicai]
-   %Colors = [green yellow red blue]
-   
-   Players = [player034basicai player034basicai player034randomai player034randomai]
-   Colors = [green green red red]
-   %Colors = [green yellow red blue]
-   %NbPlayer = 2
-   %Players = [player034basicai player034randomai]
-   %Colors = [green blue]
-   
-   %NbPlayer = 3
-   %Players = [player000basicai player000randomai]
-   %Colors = [green blue]
-   %NbPlayer = 3
-   %Players = [basicAI basicAI basicAI]
-   %Players = [player034basicAI2 player034basicAI2 player034basicAI2]
-   %Colors = [red blue yellow]
+   NbPlayer = 2
+   Players = [player034basicai player034randomai]
+   Colors = [green blue]
 
 %%%% Thinking parameters (only in simultaneous) %%%%
 
-   ThinkMin = 1%500
-   ThinkMax = 2%3000
+   ThinkMin = 500
+   ThinkMax = 3000
 
 %%%% Surface time/turns %%%%
 

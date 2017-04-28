@@ -424,9 +424,9 @@ in
 
 			NumAlive = {NumberAlive PlayersPorts 0}
 			if NumAlive==0 then
-				{Browser.browse 'Players are all dead'}
+				skip%{Browser.browse 'Players are all dead'}
 			elseif NumAlive==1 then
-				{Browser.browse 'One player left, we have a winner!!!'}
+				skip%{Browser.browse 'One player left, we have a winner!!!'}
 			else
 			   %Simulate One Turn
 			   {OneTurn PlayersPorts PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn}
@@ -540,7 +540,7 @@ in
 				end
 			end
 		else
-			{Browse 'dead'}
+			skip%{Browse 'dead'}
 		end
 	end
 
@@ -558,7 +558,7 @@ in
 	proc {Simultaneous}
 		GameFinished
 	in
-	   {Browser.browse 'Simultaneous'}
+	   %{Browser.browse 'Simultaneous'}
 
 	   %Launch one thread by player that simulate the actions of each one
 	   for P in PlayersPorts do
@@ -571,7 +571,7 @@ in
 		{CheckEnd GameFinished}
 
 		if GameFinished then
-			{Browser.browse 'The game is finished'}
+			skip%{Browser.browse 'The game is finished'}
 		end
 
 	end
@@ -584,8 +584,8 @@ in
 
 	%======= Create the port for every player and ask them to set up ===================
 	{CreatePlayers}
-	{Browser.browse 'Input.nbPlayer'#Input.nbPlayer}
-	{Browser.browse 'PlayersPorts'#PlayersPorts}
+	%{Browser.browse 'Input.nbPlayer'#Input.nbPlayer}
+	%{Browser.browse 'PlayersPorts'#PlayersPorts}
 
 	{SetUpAndShow PlayersPorts}
 

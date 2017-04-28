@@ -6,7 +6,7 @@ functor
 import
 	OS %for random number generation
 	Browser %for displaying debug information
-	
+
 	Input
 export
 	portPlayer:StartPlayer
@@ -27,7 +27,7 @@ define
 	StartPlayer
 	TreatStream
 	Behavior
-	
+
 	InitPosition
 	Move
 	NoSquareAvailable
@@ -37,13 +37,13 @@ define
 	MoveTowards
 	MoveAway
 	PositionGetsYouCloser
-	
+
 	LoadWeapon
 	ChooseWhichToLoad
 	ChooseMissileOrMineToLoad
 	NoTrackingInfo
 	AttackWeaponHeuristic
-	
+
 	ChooseWhichToFire
 	ChooseMissileOrMineToFire
 	GetMostPreciseTarget
@@ -55,14 +55,14 @@ define
 	SquareIsReachableForExplosion
 	FireDrone
 	FireSonar
-	
+
 	ExplodeMine
-	
+
 	ExplosionHappened
 	ComputeDamage
-	
+
 	FakeCoordForSonars
-	
+
 	PlayerMoved
 	PlayerMadeSurface
 	GetLastDroneFired
@@ -70,10 +70,10 @@ define
 	DroneDidNotFind
 	SonarAnswered
 	PlayerDead
-	
+
 	PositionIsValid
 	CoordIsOnGrid
-	
+
 	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 lastDroneFired:null sonarsLoading:0)
 	DefaultTrackingState = nil
 in
@@ -87,7 +87,7 @@ in
 	% @stateLocation(pos:Position dir:Direction visited:VisitedSquares)
 	% @stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 	%		@XLoading is the loading of the weapon of type X
-	%						it can also be used to know 
+	%						it can also be used to know
 	%						how much of this weapon is currently available (using mod)
 	%		@MinesPlaced is a list of all the mines this player has placed
 	%							and that haven't exploded yet (with ther position)
@@ -107,7 +107,7 @@ in
 	%                                        Computations will be done on those when a player is
 	%                                        broadcast to be moving
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	
+
 	%============ Make the port object ===================
 	% @StartPlayer : Initializes the player (ID, position, weapons, tracking of others, etc.)
 	%                and creates the port object
@@ -122,7 +122,7 @@ in
 		end
 		Port
 	end
-	
+
 	% @TreatStream : Loop that checks if some new messages are sent to the port
 	%                and treats them
 	%                The parameters of this procedure keep track of the state of this port object
@@ -136,7 +136,7 @@ in
 		else skip %something went wrong
 		end
 	end
-	
+
 	%=============== Manage the messages ====================================
 	% @Behavior : Behavior for every type of message sent on the port
 	%             Returns the new state
@@ -174,7 +174,7 @@ in
 					of stateLocation(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) then
 						Position = NewPosition
 						Direction = NewDirection
-						
+
 						ReturnedState = stateBasicAI(life:PlayerLife locationState:stateLocation(pos:NewPosition dir:NewDirection visited:NewVisitedSquares) weaponsState:WeaponsState tracking:TrackingInfo)
 					else %something went wrong
 						ID = PlayerID
@@ -216,7 +216,7 @@ in
 					ID = PlayerID
 					%Load one of the weapons's loading charge
 					KindItem#NewWeaponsState = {LoadWeapon WeaponsState TrackingInfo}
-					
+
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 				end
 				{Fct PlayerID#'done charging'}
@@ -323,7 +323,7 @@ in
 			[] sayMissileExplode(ID Position ?Message) then
 				{Fct PlayerID#'say missile explode'}
 				if PlayerLife =< 0 then
-					Msg = sayDeath(PlayerID)
+					Message = sayDeath(PlayerID)
 					ReturnedState = State
 				else
 					{Fct PlayerID#'call explosion happened'}
@@ -343,7 +343,7 @@ in
 			[] sayMineExplode(ID Position ?Message) then
 				{Fct PlayerID#'say mine explode'}
 				if PlayerLife =< 0 then
-					Msg = sayDeath(PlayerID)
+					Message = sayDeath(PlayerID)
 					ReturnedState = State
 				else
 					{Fct PlayerID#'call explosion happened'}
@@ -432,7 +432,7 @@ in
 				else
 					ID = PlayerID
 					Answer = {FakeCoordForSonars State}
-					
+
 					ReturnedState = State
 				end
 				{Fct PlayerID#'done say passing sonar'}
@@ -476,11 +476,11 @@ in
 			% reset the state
 			ReturnedState = stateBasicAI(life:Input.maxDamage locationState:stateLocation(pos:{InitPosition} dir:surface visited:nil) weaponsState:DefaultWeaponsState tracking:DefaultTrackingState)
 		end
-		
+
 		%return
 		ReturnedState
 	end
-	
+
 	%============ Procedures to generate the initial position ===============
 	% @InitPosition : generates the initial position of this player
 	%                 here, it is random (but not on an island)
@@ -491,9 +491,9 @@ in
 		else {InitPosition}
 		end
 	end
-	
+
 	%=========== Procedures related to movement ========================
-	% @Move : knowing that @this is at position @LocationState 
+	% @Move : knowing that @this is at position @LocationState
 	%         and the tracking info @TrackingInfo of other players,
 	%         decides where the player should move next
 	%         Returns the new position
@@ -525,7 +525,7 @@ in
 						else
 							NewPosition#DirectionTravelled = {MoveAway Position VisitedSquares Target}
 						end
-						
+
 						if NewPosition == null orelse DirectionTravelled == null then %something went wrong
 							%return
 							LocationState
@@ -561,7 +561,7 @@ in
 		else null
 		end
 	end
-	
+
 	% @NoSquareAvailable : Checks if there is at least one square around @PlayerPosition
 	%                      that is available
 	%                      Returns @true if no square is available, @false otherwise
@@ -580,17 +580,17 @@ in
 		elseif {PositionIsValid PosWest} andthen {SquareNotVisited PosWest VisitedSquares} then
 			false
 		else
-			true			
+			true
 		end
 	end
-	
+
 	%@RandomStep : returns either 1 or -1 (one-in-two chance)
 	fun {RandomStep}
 		if ({OS.rand} mod 2) == 0 then 1
 		else ~1
 		end
 	end
-	
+
 	% @SquareNotVisited : returns true if the squares hasn't been visited in this diving phase
 	fun {SquareNotVisited Position VisitedSquares}
 		case VisitedSquares
@@ -604,7 +604,7 @@ in
 			true %Prevents looping forever
 		end
 	end
-	
+
 	% @GetTarget : Returns the position of the first player whose position is known
 	%              or null if no position is certain
 	fun {GetTarget TrackingInfo}
@@ -632,8 +632,8 @@ in
 	in
 		{Loop TrackingInfo}
 	end
-	
-	% @MoveTowards : Returns a valid position that allows @this to 
+
+	% @MoveTowards : Returns a valid position that allows @this to
 	%                move towards @Target (in most cases)
 	%                and the direction it makes
 	fun {MoveTowards Position VisitedSquares Target}
@@ -663,7 +663,7 @@ in
 				{ERR 'Randomized out-of-bound'}
 				NewPosition = null
 			end
-			
+
 			if NewPosition == null then
 				{MoveTowards Position VisitedSquares Target}
 			else
@@ -692,8 +692,8 @@ in
 			null#null
 		end
 	end
-	
-	% @MoveAway : Returns a valid position that allows @this to 
+
+	% @MoveAway : Returns a valid position that allows @this to
 	%             move away from @Target (in most cases)
 	%             and the direction it makes
 	fun {MoveAway Position VisitedSquares Target}
@@ -723,7 +723,7 @@ in
 				{ERR 'Randomized out-of-bound'}
 				NewPosition = null
 			end
-			
+
 			if NewPosition == null then
 				{MoveAway Position VisitedSquares Target}
 			else
@@ -752,7 +752,7 @@ in
 			null#null
 		end
 	end
-	
+
 	% @PositionGetsYouCloser : Returns @true if @NewPosition gets you closer to @Target
 	%                          !!! @NewPosition should ALWAYS be one square next to @Position !!!
 	fun {PositionGetsYouCloser Position NewPosition Target}
@@ -784,7 +784,7 @@ in
 			true %because we have to return something
 		end
 	end
-	
+
 	%============== Procedures regarding loading weapons ===================
 	% @LoadWeapon : Add a loading charge to one type of weapon
 	%               Returns the new weapons state and a weapon type if a new weapon is available
@@ -829,7 +829,7 @@ in
 				NewWeaponAvailable = null %because we have to return something
 				NewWeaponsState = WeaponsState %idem
 			end
-			
+
 			%return
 			NewWeaponAvailable#NewWeaponsState
 		else %something went wrong
@@ -837,7 +837,7 @@ in
 			null#WeaponsState %because we have to return something
 		end
 	end
-	
+
 	% @ChooseWhichToLoad : Chooses which type of weapon to load on basis of the tracking information
 	fun {ChooseWhichToLoad WeaponsState TrackingInfo}
 		if {NoTrackingInfo TrackingInfo} then
@@ -889,7 +889,7 @@ in
 			end
 		end
 	end
-	
+
 	% @ChooseMissileOrMineToLoad : Considers the range of both weapons as well as the loading time
 	%                              and chooses which weapon should be charge (missile or mine)
 	%                              Also considers the number of weapons of this type that are ready and
@@ -920,7 +920,7 @@ in
 			{AttackWeaponHeuristic}
 		end
 	end
-	
+
 	% @NoTrackingInfo : Checks if there is no info remaining in @TrackingInfo
 	fun {NoTrackingInfo TrackingInfo}
 		fun {Loop TrackingInfo}
@@ -948,7 +948,7 @@ in
 		else {Loop TrackingInfo}
 		end
 	end
-	
+
 	% @AttackWeaponHeuristic : Decides if mines or missiles are more interesting
 	%                          considering their range and loading time
 	%                          The coefficients in the formulae are completely arbitrary
@@ -968,8 +968,8 @@ in
 			end
 		end
 	end
-	
-	%=========== Procedures regarding firing weapons ======================	
+
+	%=========== Procedures regarding firing weapons ======================
 	% @ChooseWhichToFire : If a weapon is available and @this wants to shoot
 	%                      somewhere, decides which weapon to use and
 	%                      returns it
@@ -998,7 +998,7 @@ in
 							WeaponTypeToFire = sonar
 						end
 					[] supposed(_) then WeaponTypeToFire = drone
-					[] unknown then 
+					[] unknown then
 						case YInfo
 						of certain(_) then WeaponTypeToFire = sonar
 						[] supposed(_) then WeaponTypeToFire = drone
@@ -1015,7 +1015,7 @@ in
 					WeaponTypeToFire = sonar
 				end
 			end
-			
+
 			case WeaponTypeToFire
 			% If this type of weapon is available, fire it
 			of mine then
@@ -1023,7 +1023,7 @@ in
 				elseif (DronesLoading div Input.drone) > 0 then drone
 				else null
 				end
-			[] missile then 
+			[] missile then
 				if (MissilesLoading div Input.missile) > 0 then missile
 				elseif (DronesLoading div Input.drone) > 0 then drone
 				else null
@@ -1037,7 +1037,7 @@ in
 			null %because we have to return something
 		end
 	end
-	
+
 	% @ChooseMissileOrMineToFire : Considering @WeaponsState, decides if a mine or a missile
 	%                              should be fired
 	fun {ChooseMissileOrMineToFire WeaponsState}
@@ -1050,7 +1050,7 @@ in
 					missile
 				end
 			elseif (MinesLoading div Input.mine) > 0 then mine
-			elseif (MissilesLoading div Input.missile) > 0 then missile		
+			elseif (MissilesLoading div Input.missile) > 0 then missile
 			else null
 			end
 		else %something went wrong
@@ -1058,7 +1058,7 @@ in
 			null %because we have to return something
 		end
 	end
-	
+
 	% @GetMostPreciseTarget : Returns the target which we have the most info about
 	%                         Should be called if no track is of type @certain#@certain
 	%                         The most precise is then @certain#@supposed, then @supposed#@supposed,
@@ -1075,7 +1075,7 @@ in
 						of certain(_)#supposed(_) then
 							pos(x:XInfo y:YInfo)
 						[] supposed(_)#certain(_) then
-							pos(x:XInfo y:YInfo)						
+							pos(x:XInfo y:YInfo)
 						else %wasn't of the format searched on this pass
 							{Loop Remainder {Append Acc Track|nil} Pass}
 						end
@@ -1088,7 +1088,7 @@ in
 					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
 						case XInfo#YInfo
 						of supposed(_)#supposed(_) then
-							pos(x:XInfo y:YInfo)						
+							pos(x:XInfo y:YInfo)
 						else %wasn't of the format searched on this pass
 							{Loop Remainder {Append Acc Track|nil} Pass}
 						end
@@ -1103,7 +1103,7 @@ in
 						of certain(_)#unknown then
 							pos(x:XInfo y:YInfo)
 						[] unknown#certain(_) then
-							pos(x:XInfo y:YInfo)						
+							pos(x:XInfo y:YInfo)
 						else %wasn't of the format searched on this pass
 							{Loop Remainder {Append Acc Track|nil} Pass}
 						end
@@ -1116,7 +1116,7 @@ in
 					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
 						case XInfo#YInfo
 						of supposed(_)#unknown then
-							pos(x:XInfo y:YInfo)						
+							pos(x:XInfo y:YInfo)
 						[] unknown#supposed(_) then
 							pos(x:XInfo y:YInfo)
 						else %wasn't of the format searched on this pass
@@ -1156,7 +1156,7 @@ in
 	in
 		{Loop TrackingInfo nil 1}
 	end
-	
+
 	% @FireWeapon : Fires a weapon of type @WeaponType
 	%               Returns the weapon fired (with parameters) and
 	%               the new weapons's state
@@ -1193,7 +1193,7 @@ in
 			null %because we have to return something
 		end
 	end
-	
+
 	% @UpdateWeaponsState : Returns the updated weapons's state after firing
 	%                       a weapon of type @WeaponFired
 	%                       (for a mine it is the mine fired)
@@ -1213,7 +1213,7 @@ in
 			WeaponsState %because we have to return something
 		end
 	end
-	
+
 	% @PlaceMine : Creates a mine at close enough to the target to damage it
 	%              but in the range from the player where it is allowed to place mines
 	%              and away enough to not damage the player
@@ -1259,7 +1259,7 @@ in
 			null
 		end
 	end
-	
+
 	% @FireMissile : Creates a missile set to explode close enough to the target player
 	%                but in the range from the player where it is allowed to make it explode
 	%                and away enough to not damage the player
@@ -1305,7 +1305,7 @@ in
 			null
 		end
 	end
-	
+
 	% @GetReachableExplosionPosition : Returns the square which this player can explode a weapon
 	%                                  to make the greatest damage possible to @Target
 	%                                  Returns the distance to @Target as well
@@ -1325,7 +1325,7 @@ in
 			else
 				CloserPositionAlongX = Target
 			end
-			
+
 			if Target.y > PlayerPosition.y then
 				CloserPositionAlongY = pt(x:Target.x y:(Target.y)-1)
 			elseif Target.y < PlayerPosition.y then
@@ -1333,7 +1333,7 @@ in
 			else
 				CloserPositionAlongY = Target
 			end
-			
+
 			if {SquareIsReachableForExplosion PlayerPosition CloserPositionAlongX WeaponType} then
 				1#CloserPositionAlongX
 			elseif {SquareIsReachableForExplosion PlayerPosition CloserPositionAlongY WeaponType} then
@@ -1343,7 +1343,7 @@ in
 			end
 		end
 	end
-	
+
 	% @SquareIsReachableForExplosion : Returns @true if @Target can be reached from @PlayerPosition
 	%                                  when firing a weapon of type @WeaponType
 	fun {SquareIsReachableForExplosion PlayerPosition Target WeaponType}
@@ -1367,7 +1367,7 @@ in
 			false
 		end
 	end
-	
+
 	% @FireDrone : Creates a drone (looking at a row or a column)
 	%              that search for a player whose position is supposed
 	%              Returns this drone (with which row or column it is watching as a parameter)
@@ -1408,7 +1408,7 @@ in
 			{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
 			RowOrColumn = null
 		end
-		
+
 		if RowOrColumn == null then %this shouldn't happen, but if it does, fire randomly
 			case {OS.rand} mod 2
 			of 0 then %row
@@ -1433,12 +1433,12 @@ in
 			end
 		end
 	end
-	
+
 	% @FireSonar : Creates a sonar and returns it
 	fun {FireSonar}
 		sonar
 	end
-	
+
 	% @ExplodeMine : Checks if there is a mine in the list of mines placed (contained in @WeaponsState)
 	%                Chooses if one of those mine should explode and which one
 	%                (if we know another player that is close enough)
@@ -1471,7 +1471,7 @@ in
 				false
 			end
 		end
-		
+
 		fun {ChooseMineLoop MinesPlaced MinesAccumulator}
 			case MinesPlaced
 			of Mine|Remainder then
@@ -1498,7 +1498,7 @@ in
 			null#WeaponsState %because we have to return something
 		end
 	end
-	
+
 	%========== Procedures about taking damages =================
 	% @ExplosiongHappened : Computes the message to send to the game controller when something explode
 	%                       at position @ExplodePosition and updates the player's state
@@ -1539,7 +1539,7 @@ in
 		%return
 		Message#UpdatedState
 	end
-	
+
 	% @ComputeDamage : Computes the damages taken as something (mine or missile) explode
 	%                      at position @ExplosionPosition
 	%                      Returns the number of damages taken and the new state (with the life left)
@@ -1561,7 +1561,7 @@ in
 			0#State
 		end
 	end
-	
+
 	%======== Procedures about other players' detections ================
 	% @FakeCoordForSonars : Generates coordinates that will be sent
 	%                       to another player's sonar detection
@@ -1585,7 +1585,7 @@ in
 			pt(x:0 y:0) %because we have to return somthing with a valid format
 		end
 	end
-	
+
 	% @PlayerMoved : Updates the information of tracking for the player @ID
 	%                when it moves in the direction @Direction
 	%
@@ -1607,7 +1607,7 @@ in
 								if Direction == south then NewCoord = Coord+1
 								else NewCoord = Coord-1
 								end
-								
+
 								if {CoordIsOnGrid NewCoord x} then
 									%return
 									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(NewCoord) y:Y)|nil} Remainder}
@@ -1621,7 +1621,7 @@ in
 								if Direction == south then NewCoord = Coord+1
 								else NewCoord = Coord-1
 								end
-								
+
 								if {CoordIsOnGrid NewCoord x} then
 									%return
 									{Append {Append Acc trackingInfo(id:ID surface:false x:certain(NewCoord) y:Y)|nil} Remainder}
@@ -1641,7 +1641,7 @@ in
 								if Direction == east then NewCoord = Coord+1
 								else NewCoord = Coord-1
 								end
-								
+
 								if {CoordIsOnGrid NewCoord y} then
 									%return
 									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(NewCoord))|nil} Remainder}
@@ -1655,7 +1655,7 @@ in
 								if Direction == east then NewCoord = Coord+1
 								else NewCoord = Coord-1
 								end
-								
+
 								if {CoordIsOnGrid NewCoord y} then
 									%return
 									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:certain(NewCoord))|nil} Remainder}
@@ -1690,7 +1690,7 @@ in
 	in
 		{Loop TrackingInfo ID Direction nil}
 	end
-	
+
 	% @PlayerMadeSurface : Update the tracking info when Player @ID made surface
 	fun {PlayerMadeSurface TrackingInfo ID}
 		fun {Loop TrackingInfo ID Acc}
@@ -1720,7 +1720,7 @@ in
 	in
 		{Loop TrackingInfo ID nil}
 	end
-	
+
 	% @GetLastDroneFired : Returns the last drone that was fired
 	fun {GetLastDroneFired WeaponsState}
 		case WeaponsState
@@ -1733,7 +1733,7 @@ in
 			null
 		end
 	end
-	
+
 	% @DroneAnswered : A drone came back saying @ID is on row or column @RowOrColumn
 	%                  Updates the tracking info and returns it
 	fun {DroneAnswered TrackingInfo ID RowOrColumn}
@@ -1763,6 +1763,7 @@ in
 								UpdatedX = certain(XDrone)
 								UpdatedY = Y
 							end
+
 						[] row(YDrone) then
 							case Y
 							of unknown then
@@ -1779,12 +1780,13 @@ in
 								UpdatedY = certain(YDrone)
 								UpdatedX = X
 							end
+
 						else %something went wront
 							{ERR 'RowOrColumn given to drone has an invalid format'#RowOrColumn}
 							UpdatedX = X
 							UpdatedY = Y
 						end
-						
+
 						%return
 						{Append {Append Acc UpdatedTrack|nil} Remainder}
 					else %keep searching the list
@@ -1812,7 +1814,7 @@ in
 	in
 		{Loop TrackingInfo ID RowOrColumn nil}
 	end
-	
+
 	% @DroneDidNotFind : A drone came back saying player @ID is not on @RowOrColumn
 	%                    Returns the updated tracking info
 	fun {DroneDidNotFind TrackingInfo ID RowOrColumn}
@@ -1834,7 +1836,7 @@ in
 							[] supposed(X) then
 								if X == XDrone then
 									UpdatedX = unknown
-									
+
 									case YInfo
 									of supposed(Y) then %this coordinate comes from a sonar => it is right
 										UpdatedY = certain(Y)
@@ -1867,7 +1869,7 @@ in
 							[] supposed(Y) then
 								if Y == YDrone then
 									UpdatedY = unknown
-									
+
 									case XInfo
 									of supposed(X) then %this coordinate comes from a sonar => it is right
 										UpdatedX = certain(X)
@@ -1890,7 +1892,7 @@ in
 							UpdatedX = XInfo
 							UpdatedY = YInfo
 						end
-						
+
 						%return
 						{Append {Append Acc UpdatedTrack|nil} Remainder}
 					else %this is not the player to update
@@ -1907,7 +1909,7 @@ in
 	in
 		{Loop TrackingInfo ID RowOrColumn nil}
 	end
-	
+
 	% @SonarAnswered : A sonar came back with the answers @ID and @Answer
 	%                  Updates the tracking info and returns it
 	fun {SonarAnswered TrackingInfo ID Answer}
@@ -1930,7 +1932,7 @@ in
 							else %certain => don't update
 								UpdatedX = X
 							end
-							
+
 							case Y
 							of unknown then
 								UpdatedY = supposed(YSonar)
@@ -1939,7 +1941,7 @@ in
 							else %certain => don't update
 								UpdatedY = Y
 							end
-							
+
 							% Add this new track in the tracking info
 							%return
 							{Append {Append Acc UpdatedTrack|nil} Remainder}
@@ -1973,7 +1975,7 @@ in
 	in
 		{Loop TrackingInfo ID Answer nil}
 	end
-	
+
 	% @PlayerDead : Player @ID id dead
 	%               Removes the info about it in the tracking info and
 	%               returns the updated tracking info
@@ -1998,7 +2000,7 @@ in
 	in
 		{Loop ID TrackingInfo nil}
 	end
-	
+
 	%============== Useful procedures and functions ================
 	% @PositionIsValid : checks if @Position is not on an island
 	%                    returns @true if it is valid and @false otherwise
@@ -2014,7 +2016,7 @@ in
 		else false
 		end
 	end
-	
+
 	% @CoordIsOnGrid :checks if @Coord along the axis @Axis is on the grid
 	fun {CoordIsOnGrid Coord Axis}
 		if Axis == x then
@@ -2027,7 +2029,7 @@ in
 			end
 		else %something went wrong
 			{ERR 'Tried to check a coordinate in an invalid axis'#Axis}
-			false		
+			false
 		end
 	end
 end
