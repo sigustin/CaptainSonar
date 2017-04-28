@@ -205,7 +205,7 @@ in
 						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState)
 					else
 						KindFire = null
-						ReturnedState = stateRandomAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState)
+						ReturnedState = State
 					end
 				end
 			%-------- Choose to explode a placed mine -----------------

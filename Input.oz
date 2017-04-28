@@ -289,7 +289,7 @@ in
 %%%% Players description %%%%
 
    NbPlayer = 4
-   %Players = [player000randomai player000randomai player000randomai player000basicai]
+   %Players = [player000randomai player000randomai player000randomai player000randomai]
    Players = [player000basicai player000basicai player000basicai player000basicai]
    Colors = [green yellow red blue]
 

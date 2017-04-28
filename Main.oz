@@ -115,7 +115,7 @@ in
 	   of P|H then ID Position in
 	   	% Set up the current player
 	      {Send P initPosition(ID Position)}
-	      {Browse ID#Position}
+	      {Browse 'initialize pos'#ID#Position}
 	      % Show the current player
 	      {Send PortWindow initPlayer(ID Position)}
 	      %return
@@ -555,7 +555,7 @@ in
 
 						{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-						{Send P fireItem(ID2 KindFire)} {Browse 'fireitem'}
+						{Send P fireItem(ID2 KindFire)} {Browse 'fireitem'#ID2#KindFire}
 						case ID2 of null then
 							skip
 						else

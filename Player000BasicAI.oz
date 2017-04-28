@@ -212,14 +212,21 @@ in
 					NewWeaponsState
 				in
 					ID = PlayerID
+					{Browse 'fireItem'#'type'#FiredWeaponType}
 					if FiredWeaponType \= null then
+						{Browse 'test'}
 						% Fire a weapon of type @FiredWeaponType
 						case LocationState
 						of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
+							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 						else %something went wrong
 							{ERR 'LocationState has an invalid format'#LocationState}
+							ReturnedState = State
 						end
+					else %decided not to fire anything
+						KindFire = null
+						ReturnedState = State
 					end
 				end
 			%------- Choose to explode a placed mine ---------------
@@ -232,7 +239,7 @@ in
 					case {ExplodeMine WeaponsState TrackingInfo}
 					of MineExploding#NewWeaponsState then
 						Mine = MineExploding
-						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking::TrackingInfo)
+						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 					else %something went wrong
 						{ERR 'ExplodeMine did not return a record correctly formatted'}
 						ReturnedState = State
@@ -406,7 +413,6 @@ in
 	fun {InitPosition}
 		RandomPosition = pt(x:({OS.rand} mod Input.nRow)+1 y:({OS.rand} mod Input.nColumn)+1)
 	in
-		{Browse 'initpos'#RandomPosition#{PositionIsValid RandomPosition}}
 		if {PositionIsValid RandomPosition} then RandomPosition
 		else {InitPosition}
 		end
