@@ -218,14 +218,12 @@ in
 			[] fireItem(?ID ?KindFire) then
 				{Fct PlayerID#'fire a weapon'}
 				if PlayerLife =< 0 then
-					{Browse 'dead'}
 					ID = null
 					ReturnedState = State
 				else
 					FiredWeaponType = {ChooseWhichToFire WeaponsState TrackingInfo}
 					NewWeaponsState
 				in
-					{Browse 'alive'}
 					ID = PlayerID
 					if FiredWeaponType \= null then
 						% Fire a weapon of type @FiredWeaponType
@@ -237,10 +235,10 @@ in
 							{ERR 'LocationState has an invalid format'#LocationState}
 							ReturnedState = State
 						end
-						if KindFire \= null then
+						/*if KindFire \= null then
 							{Browse 'firing'#KindFire}
 							{Browse TrackingInfo}
-						end
+						end*/
 					else %decided not to fire anything
 						KindFire = null
 						ReturnedState = State
@@ -251,16 +249,12 @@ in
 			[] fireMine(?ID ?Mine) then
 				{Fct PlayerID#'fire mine'}
 				if PlayerLife =< 0 then
-					{Browse 'dead'}
 					ID = null
 					ReturnedState = State
 				else
-					{Browse 'alive'}
 					ID = PlayerID
-					{Browse 'bf explode'}
 					case {ExplodeMine WeaponsState TrackingInfo}
 					of MineExploding#NewWeaponsState then
-						{Browse 'af explode'}
 						Mine = MineExploding
 						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 					else %something went wrong
@@ -292,7 +286,6 @@ in
 			[] sayMove(ID Direction) then
 				{Fct PlayerID#'say move'}
 				if ID \= PlayerID then
-					{Browse 'playerMoved'}
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
 				in
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
@@ -393,7 +386,6 @@ in
 				if ID \= PlayerID andthen Answer then %Not @this and player @Id was detected
 					UpdatedTrackingInfo
 				in
-					{Browse 'drone answered'}
 					case WeaponsState
 					of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 						case Drone
@@ -1485,7 +1477,6 @@ in
 		Message
 		UpdatedState
 	in
-		{Browse 'explosionhappened'}
 		case {ComputeDamage ExplosionPosition State}
 		of DamageTaken#NewState then
 			if DamageTaken == 0 then
@@ -1705,7 +1696,6 @@ in
 	%                  Updates the tracking info and returns it
 	fun {DroneAnswered TrackingInfo ID Answer}
 		fun {Loop TrackingInfo ID Answer Acc}
-			{Browse 'drone looping'}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track
@@ -1775,7 +1765,6 @@ in
 	%                  Updates the tracking info and returns it
 	fun {SonarAnswered TrackingInfo ID Answer}
 		fun {Loop TrackingInfo ID Answer Acc}
-			{Browse 'Looping'}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track

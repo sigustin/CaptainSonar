@@ -297,11 +297,11 @@ in
 					case LocationState
 					of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 						case Drone
-						of drone(row:Row) then
+						of drone(row Row) then
 							if PlayerPosition.y == Row then Answer = true
 							else Answer = false
 							end
-						[] drone(column:Column) then
+						[] drone(column Column) then
 							if PlayerPosition.x == Column then Answer = true
 							else Answer = false
 							end
@@ -572,7 +572,7 @@ in
 		DistanceFromPlayer = {Abs (PlayerPosition.x-RandomPosition.x)}+{Abs (PlayerPosition.y-RandomPosition.y)}
 	in
 		% Check the distances
-		if DistanceFromPlayer >= Input.minDistanceMine andthen DistanceFromPlayer =< Input.maxDistanceMine andthen {PositionIsValid RandomPosition} then mine(RandomPosition)
+		if DistanceFromPlayer >= Input.minDistanceMine andthen DistanceFromPlayer =< Input.maxDistanceMine andthen {PositionIsValid RandomPosition} then RandomPosition
 		else {PlaceMine PlayerPosition}
 		end
 	end
@@ -595,12 +595,12 @@ in
 	fun {FireDrone}
 		case {OS.rand} mod 2
 		of 0 then %row
-			drone(row:({OS.rand} mod Input.nColumn)+1)
+			drone(row ({OS.rand} mod Input.nColumn)+1)
 		[] 1 then %column
-			drone(column:({OS.rand} mod Input.nRow)+1)
+			drone(column ({OS.rand} mod Input.nRow)+1)
 		else %something went wrong
 			{ERR 'Randomized out-of-bounds'}
-			drone(row:({OS.rand} mod Input.nRow)+1) %because we have to return something valid
+			drone(row ({OS.rand} mod Input.nRow)+1) %because we have to return something valid
 		end
 	end
 	
@@ -620,7 +620,7 @@ in
 		case WeaponsState
 		of stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading) then
 			case WeaponFired
-			of mine(_) then stateWeapons(nbMines:NbMines-1 minesLoading:MinesLoading minesPlaced:WeaponFired|MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
+			of pt(x:_ y:_) then stateWeapons(nbMines:NbMines-1 minesLoading:MinesLoading minesPlaced:WeaponFired|MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] missile then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles-1 missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] drone then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones-1 dronesLoading:DronesLoading nbSonars:NbSonars sonarsLoading:SonarsLoading)
 			[] sonar then stateWeapons(nbMines:NbMines minesLoading:MinesLoading minesPlaced:MinesPlaced nbMissiles:NbMissiles missilesLoading:MissilesLoading nbDrones:NbDrones dronesLoading:DronesLoading nbSonars:NbSonars-1 sonarsLoading:SonarsLoading)
