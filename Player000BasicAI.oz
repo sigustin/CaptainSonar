@@ -17,6 +17,9 @@ define
 	proc {Browse Msg}
 		{Browser.browse Msg}
 	end
+	proc {Fct Msg}
+		{Browser.browse 'fct'#Msg}
+	end
 	
 	StartPlayer
 	TreatStream
@@ -140,6 +143,7 @@ in
 			case Msg
 			%------------ Initialize position ---------------
 			of initPosition(?ID ?Position) then
+				{Fct 'initpos'}
 				if PlayerLife =< 0 then
 					ID = null
 				else
@@ -152,8 +156,10 @@ in
 					end
 				end
 				ReturnedState = State
+				{Fct 'done initpos'}
 			%------- Move player -----------------------
 			[] move(?ID ?Position ?Direction) then
+				{Fct 'move received'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -171,8 +177,10 @@ in
 						ReturnedState = State
 					end
 				end
+				{Fct 'done move'}
 			%-------- Permission to dive ----------------------
 			[] dive then
+				{Fct 'dive'}
 				if PlayerLife =< 0 then
 					ReturnedState = State
 				else
@@ -189,8 +197,10 @@ in
 						ReturnedState = State
 					end
 				end
+				{Fct 'done dive'}
 			%------- Increase the loading of an item ---------------
 			[] chargeItem(?ID ?KindItem) then
+				{Fct 'charge item'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -203,9 +213,10 @@ in
 					
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 				end
+				{Fct 'done charging'}
 			%------- Fire a weapon -------------------
 			[] fireItem(?ID ?KindFire) then
-				{Browse 'fire a weapon'}
+				{Fct 'fire a weapon'}
 				if PlayerLife =< 0 then
 					{Browse 'dead'}
 					ID = null
@@ -235,10 +246,10 @@ in
 						ReturnedState = State
 					end
 				end
-				{Browse 'done'}
+				{Fct 'done fire item'}
 			%------- Choose to explode a placed mine ---------------
 			[] fireMine(?ID ?Mine) then
-				{Browse 'fire mine'}
+				{Fct 'fire mine'}
 				if PlayerLife =< 0 then
 					{Browse 'dead'}
 					ID = null
@@ -257,9 +268,10 @@ in
 						ReturnedState = State
 					end
 				end
-				{Browse 'done'}
+				{Fct 'done fire mine'}
 			%------- Is this player at the surface? ---------------
 			[] isSurface(?ID ?Answer) then
+				{Fct 'surface'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -275,8 +287,10 @@ in
 					end
 					ReturnedState = State
 				end
+				{Fct 'done surface'}
 			%------- Flash info : player @ID has moved in the direction @Direction ----------
 			[] sayMove(ID Direction) then
+				{Fct 'say move'}
 				if ID \= PlayerID then
 					{Browse 'playerMoved'}
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
@@ -285,8 +299,10 @@ in
 				else
 					ReturnedState = State
 				end
+				{Fct 'done say move'}
 			%-------- Flash info : player @ID has made surface --------------
 			[] saySurface(ID) then
+				{Fct 'say surface'}
 				if ID \= PlayerID then
 					UpdatedTrackingInfo = {PlayerMadeSurface TrackingInfo ID}
 				in
@@ -294,6 +310,7 @@ in
 				else
 					ReturnedState = State
 				end
+				{Fct 'done say surface'}
 			%------- Flash info : player @ID has the item @KindItem ----------
 			[] sayCharge(ID KindItem) then
 				%Ignore this
@@ -304,6 +321,7 @@ in
 				ReturnedState = State
 			%-------- A missile exploded (is this player damaged?) ---------------
 			[] sayMissileExplode(ID Position ?Message) then
+				{Fct 'say missile explode'}
 				if PlayerLife =< 0 then
 					Msg = sayDeath(PlayerID)
 					ReturnedState = State
@@ -317,8 +335,10 @@ in
 						ReturnedState = State
 					end
 				end
+				{Fct 'done say missile'}
 			%-------- A mine exploded (is this player damaged?) -------------
 			[] sayMineExplode(ID Position ?Message) then
+				{Fct 'say mine explode'}
 				if PlayerLife =< 0 then
 					Msg = sayDeath(PlayerID)
 					ReturnedState = State
@@ -332,8 +352,10 @@ in
 						ReturnedState = State
 					end
 				end
+				{Fct 'done say mine explode'}
 			%------- A drone is asking if this player is on a certain row/column ---------
 			[] sayPassingDrone(Drone ?ID ?Answer) then
+				{Fct 'say passing drone'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -358,8 +380,10 @@ in
 					end
 					ReturnedState = State
 				end
+				{Fct 'done say passing drone'}
 			%------ This player's drone came back with answers ------------
 			[] sayAnswerDrone(Drone ID Answer) then
+				{Fct 'say answer drone'}
 				if ID \= PlayerID andthen Answer then %Not @this and player @Id was detected
 					UpdatedTrackingInfo
 				in
@@ -384,8 +408,10 @@ in
 				else
 					ReturnedState = State
 				end
+				{Fct 'done say answer drone'}
 			%----- A sonar is detecting => this player gives coordinates (one right, one wrong) ------
 			[] sayPassingSonar(?ID ?Answer) then
+				{Fct 'say passing sonar'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -395,8 +421,10 @@ in
 					
 					ReturnedState = State
 				end
+				{Fct 'done say passing sonar'}
 			%-------- This player's sonar probing answers ------------------
 			[] sayAnswerSonar(ID Answer) then
+				{Fct 'say answer sonar'}
 				if ID \= PlayerID then
 					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
 				in
@@ -404,11 +432,15 @@ in
 				else
 					ReturnedState = State
 				end
+				ReturnedState = State
+				{Fct 'done say answer sonar'}
 			%-------- Flash info : player @ID is dead -----------------
 			[] sayDeath(ID) then
+				{Fct 'say dead'}
 				UpdatedTrackingInfo = {PlayerDead ID TrackingInfo}
 			in
 				ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+				{Fct 'done say dead'}
 			%-------- Flash info : player @ID has taken @Damage damages ------------
 			[] sayDamageTaken(ID Damage LifeLeft) then
 				%Ignore this
@@ -418,6 +450,7 @@ in
 				{Browse PlayerID#State}
 				ReturnedState = State
 			else %Unknown message => don't do anything
+				{Fct 'other msg'}
 				ReturnedState = State
 			end
 		else %something went wrong
@@ -1713,6 +1746,7 @@ in
 	%                  Updates the tracking info and returns it
 	fun {SonarAnswered TrackingInfo ID Answer}
 		fun {Loop TrackingInfo ID Answer Acc}
+			{Browse 'Looping'}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track

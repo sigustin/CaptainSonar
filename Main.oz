@@ -484,7 +484,7 @@ in
 
 						{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-						{Send P fireItem(ID2 KindFire)} %{Browse 'fireitem'#ID2#KindFire}
+						{Send P fireItem(ID2 KindFire)} {Browse 'fireitem'#ID2#KindFire}
 						case ID2 of null then
 							skip
 						else
