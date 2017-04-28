@@ -1016,37 +1016,43 @@ in
 	%              Returns the created mine (with the position of setup as a parameter)
 	fun {PlaceMine PlayerPosition WeaponsState TrackingInfo}
 		Target = {GetTarget TrackingInfo}
-		DistancePlayerTarget = {Abs (PlayerPosition.x-Target.x)}+{Abs (PlayerPosition.y-Target.y)}
+		DistancePlayerTarget
 	in
-		% If this player is too close to the target, don't fire
-		if DistancePlayerTarget < 2 then
-			%return
-			null
-		else
-			%Find the square to place the mine on and that will damage the target most heavily
-			DistanceExplosionTarget#FiringPosition = {GetReachableExplosionPosition PlayerPosition Target mine}
-		in
-			if DistanceExplosionTarget == much orelse FiringPosition == null then
-				% Too far => don't place the mine
+		if Target \= null then
+			DistancePlayerTarget = {Abs (PlayerPosition.x-Target.x)}+{Abs (PlayerPosition.y-Target.y)}
+			% If this player is too close to the target, don't fire
+			if DistancePlayerTarget < 2 then
+				%return
 				null
-			elseif DistanceExplosionTarget == 0 then
-				% Target is reachable => place the mine
-				mine(FiringPosition)
-			else %DistanceExplosionTarget == 1
-				% Target is reachable but may be more damaged if we fire on the next turn
-				% => place it only if we will have another mine ready on the next turn
-				case WeaponsState
-				of stateWeapons(minesLoading:Loading minesPlaced:_ missilesLoading:_ dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
-					if (Loading+1) div Input.mine then
-						mine(FiringPosition)
-					else %wait to be closer to place the mine
-						null
-					end
-				else %something went wrong
-					{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			else
+				%Find the square to place the mine on and that will damage the target most heavily
+				DistanceExplosionTarget#FiringPosition = {GetReachableExplosionPosition PlayerPosition Target mine}
+			in
+				if DistanceExplosionTarget == much orelse FiringPosition == null then
+					% Too far => don't place the mine
+					null
+				elseif DistanceExplosionTarget == 0 then
+					% Target is reachable => place the mine
 					mine(FiringPosition)
+				else %DistanceExplosionTarget == 1
+					% Target is reachable but may be more damaged if we fire on the next turn
+					% => place it only if we will have another mine ready on the next turn
+					case WeaponsState
+					of stateWeapons(minesLoading:Loading minesPlaced:_ missilesLoading:_ dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
+						if (Loading+1) div Input.mine then
+							mine(FiringPosition)
+						else %wait to be closer to place the mine
+							null
+						end
+					else %something went wrong
+						{ERR 'WeaponsState has an invalid format'#WeaponsState}
+						mine(FiringPosition)
+					end
 				end
 			end
+		else %No target
+			%return
+			null
 		end
 	end
 	
