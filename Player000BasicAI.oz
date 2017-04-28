@@ -40,6 +40,7 @@ define
 	
 	ChooseWhichToFire
 	ChooseMissileOrMineToFire
+	GetMostPreciseTarget
 	FireWeapon
 	UpdateWeaponsState
 	PlaceMine
@@ -883,22 +884,6 @@ in
 	%                      somewhere, decides which weapon to use and
 	%                      returns it
 	fun {ChooseWhichToFire WeaponsState TrackingInfo}
-		fun {Loop WeaponsState TrackingInfo}
-			case TrackingInfo
-			of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
-				case X#Y
-				of certain(_)#certain(_) then
-					{ChooseMissileOrMineToFire WeaponsState}
-				else
-					{Loop WeaponsState Remainder}
-				end
-			[] nil then drone
-			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
-				drone
-			end
-		end
-	in
 		case WeaponsState
 		of stateWeapons(minesLoading:MinesLoading minesPlaced:_ missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:_ sonarsLoading:SonarsLoading) then
 			% Choose a type of weapon to try and fire
@@ -906,8 +891,39 @@ in
 		in
 			if TrackingInfo == nil then
 				WeaponTypeToFire = sonar
+			elseif {GetTarget TrackingInfo} \= null then
+				WeaponTypeToFire = {ChooseMissileOrMineToFire WeaponsState}
 			else
-				WeaponTypeToFire = {Loop WeaponsState TrackingInfo}
+				MostPreciseTarget = {GetMostPreciseTarget TrackingInfo}
+			in
+				case MostPreciseTarget
+				of pos(x:XInfo y:YInfo) then
+					case XInfo
+					of certain(_) then
+						case YInfo
+						of supposed(_) then WeaponTypeToFire = drone
+						[] unknown then WeaponTypeToFire = sonar
+						else %something went wrong
+							{ERR 'YInfo has an unexpected format'#YInfo}
+							WeaponTypeToFire = sonar
+						end
+					[] supposed(_) then
+						case YInfo
+						of certain(_) then WeaponTypeToFire = drone
+						[] supposed(_) then WeaponTypeToFire = drone
+						[] unknown then WeaponTypeToFire = sonar
+						else %something went wrong
+							{ERR 'YInfo has an unexpected format'#YInfo}
+							WeaponTypeToFire = sonar
+						end
+					[] unknown then WeaponTypeToFire = sonar
+					end
+				[] null then
+					WeaponTypeToFire = sonar
+				else %something went wrong
+					{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
+					WeaponTypeToFire = sonar
+				end
 			end
 			
 			case WeaponTypeToFire
@@ -951,6 +967,104 @@ in
 			{ERR 'WeaponsState has an invalid format'#WeaponsState}
 			null %because we have to return something
 		end
+	end
+	
+	% @GetMostPreciseTarget : Returns the target which we have the most info about
+	%                         Should be called if no track is of type @certain#@certain
+	%                         The most precise is then @certain#@supposed, then @supposed#@supposed,
+	%                         then @certain#@unknown, then @supposed#@unknown, then @unknown#@unknown
+	fun {GetMostPreciseTarget TrackingInfo}
+		fun {Loop TrackingInfo Acc Pass}
+			case TrackingInfo
+			of Track|Remainder then
+				case Pass
+				of 1 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of certain(_)#supposed(_) then
+							pos(x:XInfo y:YInfo)
+						[] supposed(_)#certain(_) then
+							pos(x:XInfo y:YInfo)						
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				[] 2 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of supposed(_)#supposed(_) then
+							pos(x:XInfo y:YInfo)						
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				[] 3 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of certain(_)#unknown then
+							pos(x:XInfo y:YInfo)
+						[] unknown#certain(_) then
+							pos(x:XInfo y:YInfo)						
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				[] 4 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of supposed(_)#unknown then
+							pos(x:XInfo y:YInfo)						
+						[] unknown#supposed(_) then
+							pos(x:XInfo y:YInfo)
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				[] 5 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of unknown#unknown then %If we got to this point, there is no info in @TrackingInfo
+							null
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				else %something went wrong
+					{ERR 'Pass number too big'#Pass}
+					null
+				end
+			[] nil then
+				%Get to the next pass
+				if Pass < 5 then
+					{Loop Acc nil Pass+1}
+				else
+					%No target info found
+					null
+				end
+			end
+		end
+	in
+		{Loop TrackingInfo nil 1}
 	end
 	
 	% @FireWeapon : Fires a weapon of type @WeaponType
