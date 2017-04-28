@@ -1301,51 +1301,43 @@ in
 	%              that search for a player whose position is supposed
 	%              Returns this drone (with which row or column it is watching as a parameter)
 	fun {FireDrone TrackingInfo}
-		% The next function returns the first supposed position found in @TrackingInfo
-		fun {Loop TrackingInfo}
-			case TrackingInfo
-			of Track|Remainder then
-				case Track
-				of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
-					if {OS.rand} mod 2 == 0 then
-						case XInfo
-						of supposed(X) then
-							column(X)
-						else
-							case YInfo
-							of supposed(Y) then
-								row(Y)
-							else
-								{Loop Remainder}
-							end
-						end
-					else
-						case YInfo
-						of supposed(Y) then
-							row(Y)
-						else
-							case XInfo
-							of supposed(X) then
-								column(X)
-							else
-								{Loop Remainder}
-							end
-						end
-					end
+		MostPreciseTarget = {GetMostPreciseTarget TrackingInfo}
+		RowOrColumn
+	in
+		case MostPreciseTarget
+		of pos(x:XInfo y:YInfo) then
+			case XInfo
+			of certain(_) then
+				case YInfo
+				of supposed(Y) then RowOrColumn = row(Y)
+				[] unknown then RowOrColumn = null
 				else %something went wrong
-					{ERR 'An element in TrackingInfo has an invalid format'#TrackingInfo}
-					{Loop Remainder}
+					{ERR 'YInfo has an unexpected format'#YInfo}
+					RowOrColumn = null
 				end
-			[] nil then %no supposed position found
-				null
-			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
-				null
+			[] supposed(X) then
+				case YInfo
+				of certain(_) then RowOrColumn = column(X)
+				[] supposed(Y) then if {OS.rand} mod 2 == 0 then RowOrColumn = column(X) else RowOrColumn = row(Y) end
+				[] unknown then RowOrColumn = column(X)
+				else %something went wrong
+					{ERR 'YInfo has an unexpected format'#YInfo}
+					RowOrColumn = null
+				end
+			[] unknown then
+				case YInfo
+				of certain(_) then RowOrColumn = null
+				[] supposed(Y) then RowOrColumn = row(Y)
+				else RowOrColumn = null
+				end
 			end
+		[] null then
+			RowOrColumn = null
+		else %something went wrong
+			{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
+			RowOrColumn = null
 		end
 		
-		RowOrColumn = {Loop TrackingInfo}
-	in
 		if RowOrColumn == null then %this shouldn't happen, but if it does, fire randomly
 			case {OS.rand} mod 2
 			of 0 then %row
