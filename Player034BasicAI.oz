@@ -63,7 +63,9 @@ define
 
 	PlayerMoved
 	PlayerMadeSurface
+	GetLastDroneFired
 	DroneAnswered
+	DroneDidNotFind
 	SonarAnswered
 	PlayerDead
 
@@ -292,8 +294,10 @@ in
 			[] sayMove(ID Direction) then
 				{Fct PlayerID#'say move'}
 				if ID \= PlayerID andthen ID \= null then
-					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
+					UpdatedTrackingInfo
 				in
+					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
+					%{Browse PlayerID#'af moved'#UpdatedTrackingInfo}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
 					ReturnedState = State
@@ -390,29 +394,41 @@ in
 			[] sayAnswerDrone(Drone ID Answer) then
 				{Fct PlayerID#'say answer drone'}
 				%{Browse PlayerID#'begin answer drone'}
-				if ID \= PlayerID andthen ID \= null andthen Answer then %Not @this and player @Id was detected
+				if ID \= PlayerID andthen ID \= null then %Not @this
 					UpdatedTrackingInfo
+					Drone = {GetLastDroneFired WeaponsState}
 				in
-					case WeaponsState
-					of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
+					if Answer then
 						case Drone
 						of drone(column X) then
 							%{Browse 'calling droneanswered'}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
+							%{Browse PlayerID#'af drone'#UpdatedTrackingInfo}
 							%{Browse 'done droneanswered'}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row Y) then
 							%{Browse 'calling droneanswered'}
+							%{Browse PlayerID#'drone'#TrackingInfo}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
+							%{Browse PlayerID#'af drone'#UpdatedTrackingInfo}
 							%{Browse 'done droneanswered'}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
 							{ERR 'Drone has an invalid format'#Drone}
 							ReturnedState = State
 						end
-					else %something went wrong
-						{ERR 'WeaponsState has an invalid format'#WeaponsState}
-						ReturnedState = State
+					else %Answer == false
+						case Drone
+						of drone(column X) then
+							UpdatedTrackingInfo = {DroneDidNotFind TrackingInfo ID column(X)}
+							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+						[] drone(row Y) then
+							UpdatedTrackingInfo = {DroneDidNotFind TrackingInfo ID row(Y)}
+							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
+						else %something went wrong
+							{ERR 'Drone has an invalid format'#Drone}
+							ReturnedState = State
+						end
 					end
 				else
 					ReturnedState = State
@@ -441,6 +457,7 @@ in
 				in
 					%{Browse 'calling sonaranswered'#Answer}
 					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
+					%{Browse PlayerID#'af sonar'#UpdatedTrackingInfo}
 					%{Browse 'done sonaranswered'}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
@@ -865,12 +882,20 @@ in
 						case YInfo
 						of certain(_) then drone
 						[] supposed(_) then drone
+						[] unknown then drone
+						else %something went wrong
+							{ERR 'YInfo has an unexpected format'#YInfo}
+							sonar
+						end
+					[] unknown then
+						case YInfo
+						of certain(_) then sonar
+						[] supposed(_) then drone
 						[] unknown then sonar
 						else %something went wrong
 							{ERR 'YInfo has an unexpected format'#YInfo}
 							sonar
 						end
-					[] unknown then sonar
 					end
 				[] null then
 					sonar
@@ -989,16 +1014,16 @@ in
 							{ERR 'YInfo has an unexpected format'#YInfo}
 							WeaponTypeToFire = sonar
 						end
-					[] supposed(_) then
+					[] supposed(_) then WeaponTypeToFire = drone
+					[] unknown then
 						case YInfo
-						of certain(_) then WeaponTypeToFire = drone
+						of certain(_) then WeaponTypeToFire = sonar
 						[] supposed(_) then WeaponTypeToFire = drone
 						[] unknown then WeaponTypeToFire = sonar
 						else %something went wrong
 							{ERR 'YInfo has an unexpected format'#YInfo}
 							WeaponTypeToFire = sonar
 						end
-					[] unknown then WeaponTypeToFire = sonar
 					end
 				[] null then
 					WeaponTypeToFire = sonar
@@ -1712,12 +1737,30 @@ in
 	in
 		{Loop TrackingInfo ID nil}
 	end
+<<<<<<< HEAD
 
 	% @DroneAnswered : A drone came back with the answers @ID and @Answer
+=======
+
+	% @GetLastDroneFired : Returns the last drone that was fired
+	fun {GetLastDroneFired WeaponsState}
+		case WeaponsState
+		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
+			%return
+			Drone
+		else %something went wrong
+			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			%return
+			null
+		end
+	end
+
+	% @DroneAnswered : A drone came back saying @ID is on row or column @RowOrColumn
+>>>>>>> 65041e1a3bbbf9eab2cd58cf42b9b8f5306e3a3d
 	%                  Updates the tracking info and returns it
-	fun {DroneAnswered TrackingInfo ID Answer}
-		fun {Loop TrackingInfo ID Answer Acc}
-			%{Browse 'drone loop'#TrackingInfo#ID#Answer#Acc}
+	fun {DroneAnswered TrackingInfo ID RowOrColumn}
+		fun {Loop TrackingInfo ID RowOrColumn Acc}
+			%{Browse 'drone loop'#TrackingInfo#ID#RowOrColumn#Acc}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track
@@ -1726,31 +1769,43 @@ in
 						UpdatedX UpdatedY
 						UpdatedTrack = trackingInfo(id:ID surface:Surface x:UpdatedX y:UpdatedY)
 					in
-						case Answer
+						case RowOrColumn
 						of column(XDrone) then
 							case X
 							of	unknown then
 								UpdatedX = certain(XDrone)
+								UpdatedY = Y
 							[] supposed(_) then
 								UpdatedX = certain(XDrone)
-							else %already certain
-								UpdatedX = X
+								case Y
+								of supposed(_) then %this @supposed comes from a sonar => it is certainly wrong
+									UpdatedY = unknown
+								else UpdatedY = Y
+								end
+							else %already certain but update anyway (it should be the same coordinate)
+								UpdatedX = certain(XDrone)
+								UpdatedY = Y
 							end
-
-							UpdatedY = Y
+							
 						[] row(YDrone) then
 							case Y
 							of unknown then
 								UpdatedY = certain(YDrone)
+								UpdatedX = X
 							[] supposed(_) then
 								UpdatedY = certain(YDrone)
-							else %already certain
-								UpdatedY = Y
+								case X
+								of supposed(_) then %this @supposed comes from a sonar => it is certainly wrong
+									UpdatedX = unknown
+								else UpdatedX = X
+								end
+							else %already certain but update anyway (it should be the same coordinate)
+								UpdatedY = certain(YDrone)
+								UpdatedX = X
 							end
 
-							UpdatedX = X
 						else %something went wront
-							{ERR 'Answer given to drone has an invalid format'#Answer}
+							{ERR 'RowOrColumn given to drone has an invalid format'#RowOrColumn}
 							UpdatedX = X
 							UpdatedY = Y
 						end
@@ -1758,14 +1813,14 @@ in
 						%return
 						{Append {Append Acc UpdatedTrack|nil} Remainder}
 					else %keep searching the list
-						{Loop Remainder ID Answer {Append Acc Track|nil}}
+						{Loop Remainder ID RowOrColumn {Append Acc Track|nil}}
 					end
 				else %something went wrong
 					{ERR 'An element in TrackingInfo has an invalid format'#Track}
-					{Loop Remainder ID Answer {Append Acc Track|nil}}
+					{Loop Remainder ID RowOrColumn {Append Acc Track|nil}}
 				end
 			[] nil then %Player @ID wasn't found => add it
-				case Answer
+				case RowOrColumn
 				of column(XDrone) then
 					%return
 					{Append Acc trackingInfo(id:ID surface:unknown x:certain(XDrone) y:unknown)|nil}
@@ -1773,14 +1828,107 @@ in
 					%return
 					{Append Acc trackingInfo(id:ID surface:unknown x:unknown y:certain(YDrone))|nil}
 				else %something went wrong
-					{ERR 'Answer given to drone has an invalid format'#Answer}
+					{ERR 'RowOrColumn given to drone has an invalid format'#RowOrColumn}
 					%return
 					Acc
 				end
 			end
 		end
 	in
-		{Loop TrackingInfo ID Answer nil}
+		{Loop TrackingInfo ID RowOrColumn nil}
+	end
+
+	% @DroneDidNotFind : A drone came back saying player @ID is not on @RowOrColumn
+	%                    Returns the updated tracking info
+	fun {DroneDidNotFind TrackingInfo ID RowOrColumn}
+		fun {Loop TrackingInfo ID RowOrColumn Acc}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:CurrentID surface:Surface x:XInfo y:YInfo) then
+					if CurrentID == ID then %this player should have its info updated
+						UpdatedX UpdatedY
+						UpdatedTrack = trackingInfo(id:ID surface:Surface x:UpdatedX y:UpdatedY)
+					in
+						case RowOrColumn
+						of column(XDrone) then
+							case XInfo
+							of unknown then %ignore
+								UpdatedX = unknown
+								UpdatedY = YInfo
+							[] supposed(X) then
+								if X == XDrone then
+									UpdatedX = unknown
+
+									case YInfo
+									of supposed(Y) then %this coordinate comes from a sonar => it is right
+										UpdatedY = certain(Y)
+									else
+										UpdatedY = YInfo
+									end
+								else
+									UpdatedX = XInfo
+									UpdatedY = YInfo
+								end
+							[] certain(X) then
+								if X == XDrone then %should never happen
+									UpdatedX = unknown
+									UpdatedY = YInfo
+								else
+									UpdatedX = XInfo
+									UpdatedY = YInfo
+								end
+							else %something went wrong
+								{ERR 'XInfo has an invalid format'#XInfo}
+								UpdatedX = XInfo
+								UpdatedY = YInfo
+							end
+						[] row(YDrone) then
+							case YInfo
+							of unknown then %ignore
+								UpdatedY = unknown
+								UpdatedX = XInfo
+							[] supposed(Y) then
+								if Y == YDrone then
+									UpdatedY = unknown
+
+									case XInfo
+									of supposed(X) then %this coordinate comes from a sonar => it is right
+										UpdatedX = certain(X)
+									else
+										UpdatedX = XInfo
+									end
+								end
+							[] certain(Y) then
+								if Y == YInfo then
+									UpdatedY = unknown
+									UpdatedX = XInfo
+								else
+									UpdatedX = XInfo
+									UpdatedY = YInfo
+								end
+							end
+						else %something went wrong
+							{ERR 'RowOrColumn given to drone has an invalid format'#RowOrColumn}
+							UpdatedX = XInfo
+							UpdatedY = YInfo
+						end
+
+						%return
+						{Append {Append Acc UpdatedTrack|nil} Remainder}
+					else %this is not the player to update
+						{Loop Remainder ID RowOrColumn {Append Acc Track|nil}}
+					end
+				else %something went wrong
+					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{Loop Remainder ID RowOrColumn {Append Acc Track|nil}}
+				end
+			[] nil then %player @ID wasn't found => ignore the information
+				Acc
+			end
+		end
+	in
+		{Loop TrackingInfo ID RowOrColumn nil}
 	end
 
 	% @SonarAnswered : A sonar came back with the answers @ID and @Answer

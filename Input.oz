@@ -49,7 +49,7 @@ in
 
 %%%% Style of game %%%%
 
-   IsTurnByTurn = false
+   IsTurnByTurn = true
 
 %%%% Description of the map %%%%
 
@@ -94,17 +94,18 @@ in
 
 %%%% Players description %%%%
 
-   NbPlayer = 4
+   NbPlayer = 2
    %Players = [player000randomai player000randomai player000randomai player000randomai]
    %Players = [player000basicai player000basicai player000basicai player000basicai]
    %Colors = [green yellow red blue]
    %Players = [player034randomai player034randomai player034randomai player034randomai]
-   Players = [player034basicai player034basicai player034randomai player034randomai]
-   Colors = [green green red red]
+   
+   %Players = [player034basicai player034basicai player034randomai player034randomai]
+   %Colors = [green green red red]
    %Colors = [green yellow red blue]
    %NbPlayer = 2
-   %Players = [player034basicai player034randomai]
-   %Colors = [green blue]
+   Players = [player034basicai player034randomai]
+   Colors = [green blue]
    
    %NbPlayer = 3
    %Players = [player000basicai player000randomai]
