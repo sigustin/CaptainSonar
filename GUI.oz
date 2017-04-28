@@ -242,29 +242,33 @@ in
 					{RemoveItem Grid H.1}
 				end
 				{RemoveItem Grid Handle}
-
-				%GUI = td(action:OnClose
-				%    return:WindowClosed
-				    %lr(label(text:"One player just died!" width:40)
-				    %  glue:ew)
-				%	 lr(label(text:"Not everyone deserve to live, especially not him apparently."))
-				 %   button(text:"Ok" glue:ew
-				%	   action:OnClose
-				%	  )
-				%   )
-			   %proc {OnClose}
-			%		{Window close}
-			%   end
-			 %  Window = {QTk.build GUI}
-			 %  {Window show}
-			 %  {Wait WindowClosed}
-			local
-				Command = play
-				Args = './fail-trombone-01.mp3'|nil
-				Stdin Stdout Pid
-			in
-				{OS.pipe Command Args Pid Stdin#Stdout}
-			end
+				
+				thread %make death announcement window
+					GUI = td(action:OnClose
+						return:WindowClosed
+						lr(label(text:"One player just died!" width:40)
+						  glue:ew)
+						 lr(label(text:"Not everyone deserve to live, especially not him apparently."))
+						button(text:"Ok" glue:ew
+						   action:OnClose
+						  )
+					   )
+					proc {OnClose}
+						{Window close}
+					end
+					Window = {QTk.build GUI}
+					{Window show}
+					{Wait WindowClosed}
+				end
+					
+				%sound
+				local
+					Command = play
+					Args = './fail-trombone-01.mp3'|nil
+					Stdin Stdout Pid
+				in
+					{OS.pipe Command Args Pid Stdin#Stdout}
+				end
 
 
 				Next
