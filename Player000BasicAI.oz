@@ -40,6 +40,7 @@ define
 	
 	ChooseWhichToFire
 	ChooseMissileOrMineToFire
+	GetMostPreciseTarget
 	FireWeapon
 	UpdateWeaponsState
 	PlaceMine
@@ -204,13 +205,16 @@ in
 				end
 			%------- Fire a weapon -------------------
 			[] fireItem(?ID ?KindFire) then
+				{Browse 'fire a weapon'}
 				if PlayerLife =< 0 then
+					{Browse 'dead'}
 					ID = null
 					ReturnedState = State
 				else
 					FiredWeaponType = {ChooseWhichToFire WeaponsState TrackingInfo}
 					NewWeaponsState
 				in
+					{Browse 'alive'}
 					ID = PlayerID
 					if FiredWeaponType \= null then
 						% Fire a weapon of type @FiredWeaponType
@@ -231,15 +235,21 @@ in
 						ReturnedState = State
 					end
 				end
+				{Browse 'done'}
 			%------- Choose to explode a placed mine ---------------
 			[] fireMine(?ID ?Mine) then
+				{Browse 'fire mine'}
 				if PlayerLife =< 0 then
+					{Browse 'dead'}
 					ID = null
 					ReturnedState = State
 				else
+					{Browse 'alive'}
 					ID = PlayerID
+					{Browse 'bf explode'}
 					case {ExplodeMine WeaponsState TrackingInfo}
 					of MineExploding#NewWeaponsState then
+						{Browse 'af explode'}
 						Mine = MineExploding
 						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 					else %something went wrong
@@ -247,6 +257,7 @@ in
 						ReturnedState = State
 					end
 				end
+				{Browse 'done'}
 			%------- Is this player at the surface? ---------------
 			[] isSurface(?ID ?Answer) then
 				if PlayerLife =< 0 then
@@ -267,6 +278,7 @@ in
 			%------- Flash info : player @ID has moved in the direction @Direction ----------
 			[] sayMove(ID Direction) then
 				if ID \= PlayerID then
+					{Browse 'playerMoved'}
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
 				in
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
@@ -330,11 +342,11 @@ in
 					case LocationState
 					of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 						case Drone
-						of drone(row:Row) then
+						of drone(row Row) then
 							if PlayerPosition.x == Row then Answer = true
 							else Answer = false
 							end
-						[] drone(column:Column) then
+						[] drone(column Column) then
 							if PlayerPosition.x == Column then Answer = true
 							else Answer = false
 							end
@@ -351,13 +363,14 @@ in
 				if ID \= PlayerID andthen Answer then %Not @this and player @Id was detected
 					UpdatedTrackingInfo
 				in
+					{Browse 'drone answered'}
 					case WeaponsState
 					of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 						case Drone
-						of drone(column:X) then
+						of drone(column X) then
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
-						[] drone(row:Y) then
+						[] drone(row Y) then
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
@@ -779,23 +792,42 @@ in
 		if {NoTrackingInfo TrackingInfo} then
 			sonar
 		else
-			fun {Loop TrackingInfo}
-				case TrackingInfo
-				of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
-					case X#Y
-					of certain(_)#certain(_) then
-						{ChooseMissileOrMineToLoad WeaponsState TrackingInfo}
-					else
-						{Loop Remainder}
+			Target = {GetTarget TrackingInfo}
+		in
+			if Target \= null then
+				{ChooseMissileOrMineToLoad WeaponsState TrackingInfo}
+			else
+				MostPreciseTarget = {GetMostPreciseTarget TrackingInfo}
+			in
+				case MostPreciseTarget
+				of pos(x:XInfo y:YInfo) then
+					case XInfo
+					of certain(_) then
+						case YInfo
+						of supposed(_) then drone
+						[] unknown then sonar
+						else %something went wrong
+							{ERR 'YInfo has an unexpected format'#YInfo}
+							sonar
+						end
+					[] supposed(_) then
+						case YInfo
+						of certain(_) then drone
+						[] supposed(_) then drone
+						[] unknown then sonar
+						else %something went wrong
+							{ERR 'YInfo has an unexpected format'#YInfo}
+							sonar
+						end
+					[] unknown then sonar
 					end
-				[] nil then drone
+				[] null then
+					sonar
 				else %something went wrong
-					{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
-					drone
+					{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
+					sonar
 				end
 			end
-		in
-			{Loop TrackingInfo}
 		end
 	end
 	
@@ -883,31 +915,46 @@ in
 	%                      somewhere, decides which weapon to use and
 	%                      returns it
 	fun {ChooseWhichToFire WeaponsState TrackingInfo}
-		fun {Loop WeaponsState TrackingInfo}
-			case TrackingInfo
-			of trackingInfo(id:ID surface:Surface x:X y:Y)|Remainder then
-				case X#Y
-				of certain(_)#certain(_) then
-					{ChooseMissileOrMineToFire WeaponsState}
-				else
-					{Loop WeaponsState Remainder}
-				end
-			[] nil then drone
-			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
-				drone
-			end
-		end
-	in
 		case WeaponsState
 		of stateWeapons(minesLoading:MinesLoading minesPlaced:_ missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:_ sonarsLoading:SonarsLoading) then
 			% Choose a type of weapon to try and fire
 			WeaponTypeToFire
 		in
-			if TrackingInfo == nil then
+			if {NoTrackingInfo TrackingInfo} then
 				WeaponTypeToFire = sonar
+			elseif {GetTarget TrackingInfo} \= null then
+				WeaponTypeToFire = {ChooseMissileOrMineToFire WeaponsState}
 			else
-				WeaponTypeToFire = {Loop WeaponsState TrackingInfo}
+				MostPreciseTarget = {GetMostPreciseTarget TrackingInfo}
+			in
+				case MostPreciseTarget
+				of pos(x:XInfo y:YInfo) then
+					case XInfo
+					of certain(_) then
+						case YInfo
+						of supposed(_) then WeaponTypeToFire = drone
+						[] unknown then WeaponTypeToFire = sonar
+						else %something went wrong
+							{ERR 'YInfo has an unexpected format'#YInfo}
+							WeaponTypeToFire = sonar
+						end
+					[] supposed(_) then
+						case YInfo
+						of certain(_) then WeaponTypeToFire = drone
+						[] supposed(_) then WeaponTypeToFire = drone
+						[] unknown then WeaponTypeToFire = sonar
+						else %something went wrong
+							{ERR 'YInfo has an unexpected format'#YInfo}
+							WeaponTypeToFire = sonar
+						end
+					[] unknown then WeaponTypeToFire = sonar
+					end
+				[] null then
+					WeaponTypeToFire = sonar
+				else %something went wrong
+					{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
+					WeaponTypeToFire = sonar
+				end
 			end
 			
 			case WeaponTypeToFire
@@ -951,6 +998,104 @@ in
 			{ERR 'WeaponsState has an invalid format'#WeaponsState}
 			null %because we have to return something
 		end
+	end
+	
+	% @GetMostPreciseTarget : Returns the target which we have the most info about
+	%                         Should be called if no track is of type @certain#@certain
+	%                         The most precise is then @certain#@supposed, then @supposed#@supposed,
+	%                         then @certain#@unknown, then @supposed#@unknown, then @unknown#@unknown
+	fun {GetMostPreciseTarget TrackingInfo}
+		fun {Loop TrackingInfo Acc Pass}
+			case TrackingInfo
+			of Track|Remainder then
+				case Pass
+				of 1 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of certain(_)#supposed(_) then
+							pos(x:XInfo y:YInfo)
+						[] supposed(_)#certain(_) then
+							pos(x:XInfo y:YInfo)						
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				[] 2 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of supposed(_)#supposed(_) then
+							pos(x:XInfo y:YInfo)						
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				[] 3 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of certain(_)#unknown then
+							pos(x:XInfo y:YInfo)
+						[] unknown#certain(_) then
+							pos(x:XInfo y:YInfo)						
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				[] 4 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of supposed(_)#unknown then
+							pos(x:XInfo y:YInfo)						
+						[] unknown#supposed(_) then
+							pos(x:XInfo y:YInfo)
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				[] 5 then
+					case Track
+					of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
+						case XInfo#YInfo
+						of unknown#unknown then %If we got to this point, there is no info in @TrackingInfo
+							null
+						else %wasn't of the format searched on this pass
+							{Loop Remainder {Append Acc Track|nil} Pass}
+						end
+					else %something went wrong
+						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{Loop Remainder {Append Acc Track|nil} Pass}
+					end
+				else %something went wrong
+					{ERR 'Pass number too big'#Pass}
+					null
+				end
+			[] nil then
+				%Get to the next pass
+				if Pass < 5 then
+					{Loop Acc nil Pass+1}
+				else
+					%No target info found
+					null
+				end
+			end
+		end
+	in
+		{Loop TrackingInfo nil 1}
 	end
 	
 	% @FireWeapon : Fires a weapon of type @WeaponType
@@ -997,10 +1142,10 @@ in
 		case WeaponsState
 		of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 			case WeaponFired
-			of mine(_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
+			of pt(x:_ y:_) then stateWeapons(minesLoading:MinesLoading-Input.mine minesPlaced:WeaponFired|MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			[] missile then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading-Input.missile dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
-			[] drone(row:_) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
-			[] drone(column:_) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
+			[] drone(row _) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
+			[] drone(column _) then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading-Input.drone lastDroneFired:WeaponFired sonarsLoading:SonarsLoading)
 			[] sonar then stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading-Input.sonar)
 			else WeaponsState
 			end
@@ -1033,20 +1178,20 @@ in
 					null
 				elseif DistanceExplosionTarget == 0 then
 					% Target is reachable => place the mine
-					mine(FiringPosition)
+					FiringPosition
 				else %DistanceExplosionTarget == 1
 					% Target is reachable but may be more damaged if we fire on the next turn
 					% => place it only if we will have another mine ready on the next turn
 					case WeaponsState
 					of stateWeapons(minesLoading:Loading minesPlaced:_ missilesLoading:_ dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
 						if (Loading+1) div Input.mine then
-							mine(FiringPosition)
+							FiringPosition
 						else %wait to be closer to place the mine
 							null
 						end
 					else %something went wrong
 						{ERR 'WeaponsState has an invalid format'#WeaponsState}
-						mine(FiringPosition)
+						FiringPosition
 					end
 				end
 			end
@@ -1168,72 +1313,64 @@ in
 	%              that search for a player whose position is supposed
 	%              Returns this drone (with which row or column it is watching as a parameter)
 	fun {FireDrone TrackingInfo}
-		% The next function returns the first supposed position found in @TrackingInfo
-		fun {Loop TrackingInfo}
-			case TrackingInfo
-			of Track|Remainder then
-				case Track
-				of trackingInfo(id:_ surface:_ x:XInfo y:YInfo) then
-					if {OS.rand} mod 2 == 0 then
-						case XInfo
-						of supposed(X) then
-							column(X)
-						else
-							case YInfo
-							of supposed(Y) then
-								row(Y)
-							else
-								{Loop Remainder}
-							end
-						end
-					else
-						case YInfo
-						of supposed(Y) then
-							row(Y)
-						else
-							case XInfo
-							of supposed(X) then
-								column(X)
-							else
-								{Loop Remainder}
-							end
-						end
-					end
+		MostPreciseTarget = {GetMostPreciseTarget TrackingInfo}
+		RowOrColumn
+	in
+		case MostPreciseTarget
+		of pos(x:XInfo y:YInfo) then
+			case XInfo
+			of certain(_) then
+				case YInfo
+				of supposed(Y) then RowOrColumn = row(Y)
+				[] unknown then RowOrColumn = null
 				else %something went wrong
-					{ERR 'An element in TrackingInfo has an invalid format'#TrackingInfo}
-					{Loop Remainder}
+					{ERR 'YInfo has an unexpected format'#YInfo}
+					RowOrColumn = null
 				end
-			[] nil then %no supposed position found
-				null
-			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
-				null
+			[] supposed(X) then
+				case YInfo
+				of certain(_) then RowOrColumn = column(X)
+				[] supposed(Y) then if {OS.rand} mod 2 == 0 then RowOrColumn = column(X) else RowOrColumn = row(Y) end
+				[] unknown then RowOrColumn = column(X)
+				else %something went wrong
+					{ERR 'YInfo has an unexpected format'#YInfo}
+					RowOrColumn = null
+				end
+			[] unknown then
+				case YInfo
+				of certain(_) then RowOrColumn = null
+				[] supposed(Y) then RowOrColumn = row(Y)
+				else RowOrColumn = null
+				end
 			end
+		[] null then
+			RowOrColumn = null
+		else %something went wrong
+			{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
+			RowOrColumn = null
 		end
 		
-		RowOrColumn = {Loop TrackingInfo}
-	in
 		if RowOrColumn == null then %this shouldn't happen, but if it does, fire randomly
 			case {OS.rand} mod 2
 			of 0 then %row
-				drone(row:({OS.rand} mod Input.nColumn)+1)
+				drone(row ({OS.rand} mod Input.nColumn)+1)
 			[] 1 then %column
-				drone(column:({OS.rand} mod Input.nRow)+1)
+				drone(column ({OS.rand} mod Input.nRow)+1)
 			else %something went wrong
 				{ERR 'Randomized out-of-bounds'}
-				drone(row:({OS.rand} mod Input.nRow)+1) %because we have to return something valid
+				drone(row ({OS.rand} mod Input.nRow)+1) %because we have to return something valid
 			end
 		else
 			case RowOrColumn
 			of column(Column) then
 				%return
-				drone(column:Column)
+				drone(column Column)
 			[] row(Row) then
 				%return
-				drone(row:Row)
+				drone(row Row)
 			else %something went wrong
 				{ERR 'RowOrColumn returned an invalid formatted value'#RowOrColumn}
-				drone(column:({OS.rand} mod Input.nColumn)+1) %because we have to return something
+				drone(column ({OS.rand} mod Input.nColumn)+1) %because we have to return something
 			end
 		end
 	end
@@ -1255,7 +1392,7 @@ in
 				case XInfo#YInfo
 				of certain(X)#certain(Y) then
 					case MineToTest
-					of mine(Pos) then
+					of Pos then
 						Distance = {Abs (X-Pos.x)}+{Abs (Y-Pos.y)}
 					in
 						if Distance < 2 then true
@@ -1373,7 +1510,7 @@ in
 	%
 	%                We update when the type of coordinate is @supposed or @certain.
 	%                If the update produces an invalid coordinate (out of the grid),
-	%                we transform a @supposed in @unknown and a @certain in @supposed.
+	%                we transform the coordinate in @unknown
 	fun {PlayerMoved TrackingInfo ID Direction}
 		fun {Loop TrackingInfo ID Direction Acc}
 			case TrackingInfo
@@ -1409,7 +1546,7 @@ in
 									{Append {Append Acc trackingInfo(id:ID surface:false x:certain(NewCoord) y:Y)|nil} Remainder}
 								else
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(Coord) y:Y)|nil} Remainder}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:unknown y:Y)|nil} Remainder}
 								end
 							else % coord is @unknown => don't do anything
 								%return
@@ -1443,7 +1580,7 @@ in
 									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:certain(NewCoord))|nil} Remainder}
 								else
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(Coord))|nil} Remainder}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:unknown)|nil} Remainder}
 								end
 							else %coord is @unknown => don't do anything
 								%return

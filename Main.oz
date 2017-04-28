@@ -448,7 +448,9 @@ in
 		if {IsAlive P} andthen {NumberAlive PlayersPorts 0}>1 then ID Position Direction in
 			%our player is alive
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
-
+			%{Delay 1500}
+			
+			{Browse 'begin OnePlayerSimultaneous'}
 			%direction?
 			{Send P move(ID Position Direction)}  {Browse 'move'#ID#Position#Direction}
 			case ID of null then
@@ -461,7 +463,7 @@ in
 				of surface then
 					{Send PortWindow surface(ID)}
 					{Delay Input.turnSurface}
-					{Send P dive} %{Browse 'dive'}
+					{Send P dive} {Browse 'dive'}
 					{OnePlayerSimultaneous P}
 				else KindItem KindFire Mine in
 
@@ -469,7 +471,7 @@ in
 
 					{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-					{Send P chargeItem(ID1 KindItem)} %{Browse 'chargeitem'}
+					{Send P chargeItem(ID1 KindItem)} {Browse 'chargeitem'}
 					case ID1 of null then
 						skip
 					else
@@ -477,7 +479,7 @@ in
 						of null then
 							skip
 						else
-							{BroadcastItemCharged ID KindItem} %{Browse 'itemcharged'}
+							{BroadcastItemCharged ID KindItem} {Browse 'itemcharged'}
 						end
 
 						{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
@@ -511,7 +513,7 @@ in
 							if {IsAlive P} then
 								{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-								{Send P fireMine(ID3 Mine)} %{Browse 'firemine'#ID3#Mine}
+								{Send P fireMine(ID3 Mine)} {Browse 'firemine'#ID3#Mine}
 								case ID3 of null then
 									skip
 								else
@@ -521,18 +523,20 @@ in
 									else Killed in
 										%broadcast and receive informations, change alive list
 										Killed = {MineExploded ID Mine}
-										{BroadcastKilled Killed} {Browse 'killed'}
+										{BroadcastKilled Killed}
 										{Send PortWindow removeMine(ID Mine)}
 									end
 								end
 
-								%{Browse 'end of oneplayersimultaneous'}
+								{Browse 'end of oneplayersimultaneous'}
 								{OnePlayerSimultaneous P}
 							end
 						end
 					end
 				end
 			end
+		else
+			{Browse 'dead'}
 		end
 	end
 
