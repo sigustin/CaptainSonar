@@ -218,10 +218,10 @@ in
 						of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
-							/*if KindFire \= null then
+							if KindFire \= null then
 								{Browse 'firing'#KindFire}
 								{Browse 'tracks'#TrackingInfo}
-							end*/
+							end
 						else %something went wrong
 							{ERR 'LocationState has an invalid format'#LocationState}
 							ReturnedState = State
@@ -802,10 +802,10 @@ in
 		if Target \= null then
 			case WeaponsState
 			of stateWeapons(minesLoading:MinesLoading minesPlaced:_ missilesLoading:MissilesLoading dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
-				if (MinesLoading+1) div Input.mine then
+				if (MinesLoading+1) div Input.mine > 0 then
 					%return
 					mine
-				elseif (MissilesLoading+1) div Input.missiles then
+				elseif (MissilesLoading+1) div Input.missile > 0 then
 					%return
 					missile
 				else
@@ -1049,37 +1049,42 @@ in
 	%                or @null if it decided not to fire
 	fun {FireMissile PlayerPosition WeaponsState TrackingInfo}
 		Target = {GetTarget TrackingInfo}
-		DistancePlayerTarget = {Abs (PlayerPosition.x-Target.x)}+{Abs (PlayerPosition.y-Target.y)}
 	in
-		% If this player is too close to the target, don't fire
-		if DistancePlayerTarget < 2 then
-			%return
-			null
-		else
-			%Find the square to fire the missile to and that will damage the target most heavily
-			DistanceExplosionTarget#FiringPosition = {GetReachableExplosionPosition PlayerPosition Target missile}
+		if Target \= null then
+			DistancePlayerTarget = {Abs (PlayerPosition.x-Target.x)}+{Abs (PlayerPosition.y-Target.y)}
 		in
-			if DistanceExplosionTarget == much orelse FiringPosition == null then
-				% Too far => don't fire a missile
+			% If this player is too close to the target, don't fire
+			if DistancePlayerTarget < 2 then
+				%return
 				null
-			elseif DistanceExplosionTarget == 0 then
-				% Target is reachable => fire
-				missile(FiringPosition)
-			else %DistanceExplosionTarget == 1
-				% Target is reachable but may be more damaged if we fire on the next turn
-				% => fire only if we will have another missile ready on the next turn
-				case WeaponsState
-				of stateWeapons(minesLoading:_ minesPlaced:_ missilesLoading:Loading dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
-					if (Loading+1) div Input.missile then
-						missile(FiringPosition)
-					else %wait to be closer to fire
-						null
-					end
-				else %something went wrong
-					{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			else
+				%Find the square to fire the missile to and that will damage the target most heavily
+				DistanceExplosionTarget#FiringPosition = {GetReachableExplosionPosition PlayerPosition Target missile}
+			in
+				if DistanceExplosionTarget == much orelse FiringPosition == null then
+					% Too far => don't fire a missile
+					null
+				elseif DistanceExplosionTarget == 0 then
+					% Target is reachable => fire
 					missile(FiringPosition)
+				else %DistanceExplosionTarget == 1
+					% Target is reachable but may be more damaged if we fire on the next turn
+					% => fire only if we will have another missile ready on the next turn
+					case WeaponsState
+					of stateWeapons(minesLoading:_ minesPlaced:_ missilesLoading:Loading dronesLoading:_ lastDroneFired:_ sonarsLoading:_) then
+						if (Loading+1) div Input.missile then
+							missile(FiringPosition)
+						else %wait to be closer to fire
+							null
+						end
+					else %something went wrong
+						{ERR 'WeaponsState has an invalid format'#WeaponsState}
+						missile(FiringPosition)
+					end
 				end
 			end
+		else %no target
+			null
 		end
 	end
 	
@@ -1549,9 +1554,12 @@ in
 				end
 			[] nil then %Player @ID wasn't found => add it
 				case Answer
-				of pt(x:X y:Y) then
+				of column(XDrone) then
 					%return
-					{Append Acc trackingInfo(id:ID surface:unknown x:X y:Y)|nil}
+					{Append Acc trackingInfo(id:ID surface:unknown x:certain(XDrone) y:unknown)|nil}
+				[] row(YDrone) then
+					%return
+					{Append Acc trackingInfo(id:ID surface:unknown x:unknown y:certain(YDrone))|nil}
 				else %something went wrong
 					{ERR 'Answer given to drone has an invalid format'#Answer}
 					%return
@@ -1614,7 +1622,7 @@ in
 				case Answer
 				of pt(x:X y:Y) then
 					%return
-					{Append Acc trackingInfo(id:ID surface:unknown x:X y:Y)|nil}
+					{Append Acc trackingInfo(id:ID surface:unknown x:supposed(X) y:supposed(Y))|nil}
 				else %something went wrong
 					{ERR 'Answer given to sonar has an invalid format'#Answer}
 					%return
