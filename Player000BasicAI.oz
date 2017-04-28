@@ -205,13 +205,16 @@ in
 				end
 			%------- Fire a weapon -------------------
 			[] fireItem(?ID ?KindFire) then
+				{Browse 'fire a weapon'}
 				if PlayerLife =< 0 then
+					{Browse 'dead'}
 					ID = null
 					ReturnedState = State
 				else
 					FiredWeaponType = {ChooseWhichToFire WeaponsState TrackingInfo}
 					NewWeaponsState
 				in
+					{Browse 'alive'}
 					ID = PlayerID
 					if FiredWeaponType \= null then
 						% Fire a weapon of type @FiredWeaponType
@@ -232,15 +235,21 @@ in
 						ReturnedState = State
 					end
 				end
+				{Browse 'done'}
 			%------- Choose to explode a placed mine ---------------
 			[] fireMine(?ID ?Mine) then
+				{Browse 'fire mine'}
 				if PlayerLife =< 0 then
+					{Browse 'dead'}
 					ID = null
 					ReturnedState = State
 				else
+					{Browse 'alive'}
 					ID = PlayerID
+					{Browse 'bf explode'}
 					case {ExplodeMine WeaponsState TrackingInfo}
 					of MineExploding#NewWeaponsState then
+						{Browse 'af explode'}
 						Mine = MineExploding
 						ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 					else %something went wrong
@@ -248,6 +257,7 @@ in
 						ReturnedState = State
 					end
 				end
+				{Browse 'done'}
 			%------- Is this player at the surface? ---------------
 			[] isSurface(?ID ?Answer) then
 				if PlayerLife =< 0 then
@@ -268,6 +278,7 @@ in
 			%------- Flash info : player @ID has moved in the direction @Direction ----------
 			[] sayMove(ID Direction) then
 				if ID \= PlayerID then
+					{Browse 'playerMoved'}
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
 				in
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
@@ -352,6 +363,7 @@ in
 				if ID \= PlayerID andthen Answer then %Not @this and player @Id was detected
 					UpdatedTrackingInfo
 				in
+					{Browse 'drone answered'}
 					case WeaponsState
 					of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 						case Drone
@@ -1498,7 +1510,7 @@ in
 	%
 	%                We update when the type of coordinate is @supposed or @certain.
 	%                If the update produces an invalid coordinate (out of the grid),
-	%                we transform a @supposed in @unknown and a @certain in @supposed.
+	%                we transform the coordinate in @unknown
 	fun {PlayerMoved TrackingInfo ID Direction}
 		fun {Loop TrackingInfo ID Direction Acc}
 			case TrackingInfo
@@ -1534,7 +1546,7 @@ in
 									{Append {Append Acc trackingInfo(id:ID surface:false x:certain(NewCoord) y:Y)|nil} Remainder}
 								else
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(Coord) y:Y)|nil} Remainder}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:unknown y:Y)|nil} Remainder}
 								end
 							else % coord is @unknown => don't do anything
 								%return
@@ -1568,7 +1580,7 @@ in
 									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:certain(NewCoord))|nil} Remainder}
 								else
 									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(Coord))|nil} Remainder}
+									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:unknown)|nil} Remainder}
 								end
 							else %coord is @unknown => don't do anything
 								%return
