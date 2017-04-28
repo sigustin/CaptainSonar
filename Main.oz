@@ -209,6 +209,7 @@ in
 		for P in PlayersPorts do
 			local IDRcv Answer in
 				{Send P sayPassingSonar(IDRcv Answer)}
+				{Browse PID#'passing sonar'#IDRcv#Answer}
 				{Send PID sayAnswerSonar(IDRcv Answer)}
 			end
 		end
@@ -220,6 +221,7 @@ in
 		for P in PlayersPorts do
 			local IDRcv Answer in
 				{Send P sayPassingDrone(Drone IDRcv Answer)}
+				%{Browse PID#'passing drone'#IDRcv#Answer}
 				{Send PID sayAnswerDrone(Drone IDRcv Answer)}
 			end
 		end

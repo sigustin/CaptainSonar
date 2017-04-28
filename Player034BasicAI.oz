@@ -18,8 +18,8 @@ define
 		{Browser.browse Msg}
 	end
 	proc {Fct Msg}
-		%skip
-		{Browser.browse 'fct'#Msg}
+		skip
+		%{Browser.browse 'fct'#Msg}
 	end
 	
 	StartPlayer
@@ -389,17 +389,22 @@ in
 			%------ This player's drone came back with answers ------------
 			[] sayAnswerDrone(Drone ID Answer) then
 				{Fct PlayerID#'say answer drone'}
-				if ID \= PlayerID andthen Answer then %Not @this and player @Id was detected
+				%{Browse PlayerID#'begin answer drone'}
+				if ID \= PlayerID andthen ID \= null andthen Answer then %Not @this and player @Id was detected
 					UpdatedTrackingInfo
 				in
 					case WeaponsState
 					of stateWeapons(minesLoading:MinesLoading minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading) then
 						case Drone
 						of drone(column X) then
+							%{Browse 'calling droneanswered'}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
+							%{Browse 'done droneanswered'}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row Y) then
+							%{Browse 'calling droneanswered'}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
+							%{Browse 'done droneanswered'}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
 							{ERR 'Drone has an invalid format'#Drone}
@@ -412,6 +417,7 @@ in
 				else
 					ReturnedState = State
 				end
+				%{Browse PlayerID#'end anwser drone'}
 				{Fct PlayerID#'done say answer drone'}
 			%----- A sonar is detecting => this player gives coordinates (one right, one wrong) ------
 			[] sayPassingSonar(?ID ?Answer) then
@@ -429,13 +435,18 @@ in
 			%-------- This player's sonar probing answers ------------------
 			[] sayAnswerSonar(ID Answer) then
 				{Fct PlayerID#'say answer sonar'}
-				if ID \= PlayerID then
-					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
+				%{Browse PlayerID#'say answer sonar'}
+				if ID \= PlayerID andthen ID \= null then
+					UpdatedTrackingInfo
 				in
+					%{Browse 'calling sonaranswered'#Answer}
+					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
+					%{Browse 'done sonaranswered'}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
 					ReturnedState = State
 				end
+				%{Browse PlayerID#'done say answer sonar'}
 				{Fct PlayerID#'done say answer sonar'}
 			%-------- Flash info : player @ID is dead -----------------
 			[] sayDeath(ID) then
@@ -1702,6 +1713,7 @@ in
 	%                  Updates the tracking info and returns it
 	fun {DroneAnswered TrackingInfo ID Answer}
 		fun {Loop TrackingInfo ID Answer Acc}
+			%{Browse 'drone loop'#TrackingInfo#ID#Answer#Acc}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track
@@ -1771,6 +1783,7 @@ in
 	%                  Updates the tracking info and returns it
 	fun {SonarAnswered TrackingInfo ID Answer}
 		fun {Loop TrackingInfo ID Answer Acc}
+			%{Browse 'sonar loop'#TrackingInfo#ID#Answer#Acc}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track
