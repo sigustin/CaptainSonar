@@ -238,7 +238,7 @@ in
 	fun {MineExploded ID Pos}
 		fun {PlayerByPlayer PlayersPorts}
 			case PlayersPorts
-			of P|T then Message in
+			of P|T then Message A B in
 				{Send P sayMineExplode(ID Pos Message)}
 				case Message
 				of sayDeath(IDDeath) then
@@ -259,10 +259,10 @@ in
 
 	% @IsAlive : Check if the player that listen to the port is dead
 	fun {IsAlive PlayerPort}
-		Id
+		ID
 	in
-		{Send PlayerPort initPosition(Id _)}
-		case Id
+		{Send PlayerPort initPosition(ID _)}
+		case ID
 		of null then
 			false
 		else
@@ -449,7 +449,7 @@ in
 			%our player is alive
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 			%{Delay 1500}
-			
+
 			{Browse 'begin OnePlayerSimultaneous'}
 			%direction?
 			{Send P move(ID Position Direction)}  {Browse 'move'#ID#Position#Direction}
@@ -559,7 +559,7 @@ in
 	   %Launch one thread by player that simulate the actions of each one
 	   for P in PlayersPorts do
 	   	thread
-				{Send P dive} %{Browse 'dive'}
+				{Send P dive}
 				{OnePlayerSimultaneous P}
 			end
 		end
