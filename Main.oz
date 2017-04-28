@@ -13,18 +13,12 @@ define
 	%============= Variables ====================
 	PortWindow
 	PlayersPorts %List of all the players ports => size == Input.nbPlayer
-	PlayersPositions %List of all the players positions
 	PlayersAtSurface %List of lists of the surface state of each player (true/false)
 	PlayersAtSurfaceWaitingTurn %List of lists of number of turn the players as to wait to play again
 	NTurnMax = 100 %Maximal number of turn for the game (set high for normal game)
-	PlayersAlive % List of lists does the players are alive
-	LifeStatePort % port-object to store life state of players unused
 
 	%========== Functions and procedures =====================
-	CreatePortObject%unused
 	CreatePlayers
-	GenerateColor %unused
-	LifeTreatStream
 	SetUpAndShow
 	CreatePlayersAtSurface
 	CreatePlayersAtSurfaceWaitingTurn
@@ -48,8 +42,6 @@ define
 	OnePlayerSimultaneous
 	Simultaneous
 
-	%=========== TMP ====================
-	TMPTestPlayers
 
 	%=========== DEBUG ====================
 	proc {DEBUG}
@@ -61,21 +53,6 @@ define
 in
 
 	%======== Functions and procedures definitions ============
-	% @CreatePortObject : F treat the stream
-	fun {CreatePortObject F InitialState}
-		P
-		S
-		proc {LoopStream S State}
-			case S
-			of Msg|S2 then
-				{LoopStream S2 {F State Msg}}
-			end
-		end
-	in
-		{NewPort S P}
-		thread {LoopStream S InitialState} end
-		P
-	end
 
 	% @CreatePlayers : runs a loop that creates @Input.nbPlayer players (with a color and an ID)
 	%                  and puts them in @PortsPlayer (with IDs in descending order)
@@ -97,20 +74,9 @@ in
 		PlayersPorts = {Loop 1 nil}
 	end
 
-	% @GenerateColor : for now, generates a random color that will be used as the color of a player
-	%                  TODO it should be changed to generate colors that are always
-	%                       different from one another and not too close to one another
-	%                       (2 players should easily be differentiable)
-	% UNUSED
-	fun {GenerateColor}
-		c( ({OS.rand} mod 256)
-		   ({OS.rand} mod 256)
-		   ({OS.rand} mod 256) )
-	end
-
 	% @SetUpAndShow : ask each Player its initial position
 	%                 Then sends a message to the GUI to display their initial position
-	fun {SetUpAndShow PlayersPorts}
+	proc {SetUpAndShow PlayersPorts}
 	   case PlayersPorts
 	   of P|H then ID Position in
 	   	% Set up the current player
@@ -118,9 +84,9 @@ in
 	      % Show the current player
 	      {Send PortWindow initPlayer(ID Position)}
 	      %return
-	      Position|{SetUpAndShow H}
+	      {SetUpAndShow H}
 	   [] nil then
-	      nil
+	      skip
 	   end
 	end
 
@@ -294,9 +260,8 @@ in
 	% @IsAlive : Check if the player that listen to the port is dead
 	fun {IsAlive PlayerPort}
 		Id
-		Dummy
 	in
-		{Send PlayerPort initPosition(Id Dummy)}
+		{Send PlayerPort initPosition(Id _)}
 		case Id
 		of null then
 			false
@@ -309,13 +274,7 @@ in
 	%			PlayersPorts ports of the players
 	%			PlayersAtSurface & PlayersAtSurfaceWaitingTurn players surface state
 	%			NewPlayersAtSurface & NewPlayersAtSurface update the lists
-	% TODO set GUI update
 	proc {OneTurn PlayersPorts PlayersAtSurface PlayersAtSurfaceWaitingTurn NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn}
-
-		%{Browser.browse {Length PlayersPorts}}
-		%Temporary : needed to turn more than once
-		%NewPlayersAlive = {CreatePlayersAlive Input.nbPlayer}
-
 		case PlayersPorts|PlayersAtSurface|PlayersAtSurfaceWaitingTurn
 		of (PlayerPort|PlayersPorts2)|(PlayerAtSurface|PlayersAtSurface2)|(PlayerAtSurfaceWaitingTurn|PlayersAtSurfaceWaitingTurn2) then NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2 in
 
@@ -366,9 +325,9 @@ in
 								Killed = {MissileExplode ID Pos}
 							[] sonar then
 								Killed = {SonarActivated ID PlayerPort}
-							[] drone(row X) then
+							[] drone(row _) then
 								Killed = {DroneActivated ID PlayerPort KindFire}
-							[] drone(column Y) then
+							[] drone(column _) then
 								Killed = {DroneActivated ID PlayerPort KindFire}
 							[] mine(pt(x:X y:Y)) then
 								{Send PortWindow putMine(ID pt(x:X y:Y))}
@@ -434,37 +393,6 @@ in
 		%		end
 		%	end
 		%end
-		%{Browser.browse 'OneTurn will be implemented in a short future'}
-
-		%Tests of the messages
-		%{TMPTestPlayers PlayersPorts}
-		%End of tests
-	end
-
-	proc {TMPTestPlayers PlayersPorts}
-		case PlayersPorts
-		of Player|Remainder then
-			{Send Player dive}
-			local
-				ID Position Direction
-			in
-				{Send Player dive}
-				{Send Player move(ID Position Direction)}
-				if Direction == surface then
-					{Send PortWindow surface(ID)}
-				end
-				{Send PortWindow movePlayer(ID Position)}
-			end
-			local
-				ID NewWeapon
-			in
-				{Send Player chargeItem(ID NewWeapon)}
-				%{Send Player print}
-			end
-
-			{TMPTestPlayers Remainder}
-		[] nil then skip %end
-		end
 	end
 
 	% @NumberAlive : return the number of players alive
@@ -569,9 +497,9 @@ in
 									Killed = {MissileExplode ID Pos}
 								[] sonar then
 									Killed = {SonarActivated ID P}
-								[] drone(column X) then
+								[] drone(column _) then
 									Killed = {DroneActivated ID P KindFire}
-								[] drone(row Y) then
+								[] drone(row _) then
 									Killed = {DroneActivated ID P KindFire}
 								[] mine(pt(x:X y:Y)) then
 									Killed = {MinePlaced ID}
@@ -651,15 +579,11 @@ in
 	{Browser.browse 'Input.nbPlayer'#Input.nbPlayer}
 	{Browser.browse 'PlayersPorts'#PlayersPorts}
 
-	PlayersPositions = {SetUpAndShow PlayersPorts}
-	%for Pos in PlayersPositions do
-	%	{Browser.browse Pos}
-	%end
+	{SetUpAndShow PlayersPorts}
 
 	%setup players dive state lists
 	PlayersAtSurface = {CreatePlayersAtSurface Input.nbPlayer}|_
 	PlayersAtSurfaceWaitingTurn = {CreatePlayersAtSurfaceWaitingTurn Input.nbPlayer}|_
-	PlayersAlive = {CreatePlayersAlive Input.nbPlayer}|_
 
 	%============== Run the game ==================
 	if Input.isTurnByTurn then
