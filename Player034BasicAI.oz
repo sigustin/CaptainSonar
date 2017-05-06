@@ -78,12 +78,8 @@ define
 		{System.show 'Warning:Player034BasicAI'#Msg}
 	end
 	proc {Show Msg}
-		skip
-		%{System.show Msg}
-	end
-	proc {Dbg Msg}
-		skip
-		%{System.show Msg}
+		%skip
+		{System.show Msg}
 	end
 	proc {Browse Msg}
 		skip
@@ -162,7 +158,6 @@ in
 			%------------ Initialize position ---------------
 			of initPosition(?ID ?Position) then
 				{Fct PlayerID#'initpos'}
-				%{Show 'initpos'}
 				if PlayerLife =< 0 then
 					ID = null
 				else
@@ -171,7 +166,7 @@ in
 						ID = PlayerID
 						Position = PlayerPosition
 					else %something went wrong
-						{ERR 'LocationState has an invalid format'#LocationState}
+						{ERR 'LocationState has an invalid format #1'#LocationState}
 					end
 				end
 				ReturnedState = State
@@ -179,7 +174,6 @@ in
 			%------- Move player -----------------------
 			[] move(?ID ?Position ?Direction) then
 				{Fct PlayerID#'move received'}
-				{Show PlayerID#'move'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -202,7 +196,6 @@ in
 			%-------- Permission to dive ----------------------
 			[] dive then
 				{Fct PlayerID#'dive'}
-				{Show PlayerID#'dive'}
 				if PlayerLife =< 0 then
 					ReturnedState = State
 				else
@@ -215,7 +208,7 @@ in
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:stateLocation(pos:PlayerPosition dir:north visited:nil) weaponsState:WeaponsState tracking:TrackingInfo)
 						end
 					else %something went wrong
-						{ERR 'LocationState has an invalid format'#LocationState}
+						{ERR 'LocationState has an invalid format #2'#LocationState}
 						ReturnedState = State
 					end
 				end
@@ -223,7 +216,6 @@ in
 			%------- Increase the loading of an item ---------------
 			[] chargeItem(?ID ?KindItem) then
 				{Fct PlayerID#'charge item'}
-				{Show PlayerID#'charge item'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -232,9 +224,7 @@ in
 				in
 					ID = PlayerID
 					%Load one of the weapons's loading charge
-					{Show 'call to LoadWeapon'}
 					KindItem#NewWeaponsState = {LoadWeapon WeaponsState TrackingInfo}
-					{Show 'weapon loaded'#KindItem}
 
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 				end
@@ -242,7 +232,6 @@ in
 			%------- Fire a weapon -------------------
 			[] fireItem(?ID ?KindFire) then
 				{Fct PlayerID#'fire a weapon'}
-				{Show PlayerID#'fire weapon'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -258,7 +247,7 @@ in
 							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 						else %something went wrong
-							{ERR 'LocationState has an invalid format'#LocationState}
+							{ERR 'LocationState has an invalid format #3'#LocationState}
 							ReturnedState = State
 						end
 					else %decided not to fire anything
@@ -266,12 +255,10 @@ in
 						ReturnedState = State
 					end
 				end
-				{Show 'end fire item'}
 				{Fct PlayerID#'done fire item'}
 			%------- Choose to explode a placed mine ---------------
 			[] fireMine(?ID ?Mine) then
 				{Fct PlayerID#'fire mine'}
-				{Show PlayerID#'fire mine'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -290,12 +277,10 @@ in
 						ReturnedState = State
 					end
 				end
-				{Show 'end fire mine'}
 				{Fct PlayerID#'done fire mine'}
 			%------- Is this player at the surface? ---------------
 			[] isSurface(?ID ?Answer) then
 				{Fct PlayerID#'surface'}
-				{Show PlayerID#'is surface'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -307,7 +292,7 @@ in
 						else Answer = false
 						end
 					else  %something went wrong
-						{ERR 'LocationState has an invalid format'#LocationState}
+						{ERR 'LocationState has an invalid format #4'#LocationState}
 					end
 					ReturnedState = State
 				end
@@ -315,24 +300,19 @@ in
 			%------- Flash info : player @ID has moved in the direction @Direction ----------
 			[] sayMove(ID Direction) then
 				{Fct PlayerID#'say move'}
-				{Show PlayerID#'say move'}
 				if ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo
 				in
-					{Show 'call to PlayerMoved'}
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
-					{Show 'done call to PlayerMoved'#UpdatedTrackingInfo}
+					{Show 'move'#UpdatedTrackingInfo}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
-					{Show 'moved dead or me'}
 					ReturnedState = State
 				end
-				{Show PlayerID#'end say move'}
 				{Fct PlayerID#'done say move'}
 			%-------- Flash info : player @ID has made surface --------------
 			[] saySurface(ID) then
 				{Fct PlayerID#'say surface'}
-				{Show PlayerID#'say surface'}
 				if ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo = {PlayerMadeSurface TrackingInfo ID}
 				in
@@ -352,7 +332,6 @@ in
 			%-------- A missile exploded (is this player damaged?) ---------------
 			[] sayMissileExplode(ID Position ?Message) then
 				{Fct PlayerID#'say missile explode'}
-				{Show PlayerID#'say missile exploded'}
 				if PlayerLife =< 0 then
 					Message = sayDeath(PlayerID)
 					ReturnedState = State
@@ -365,7 +344,7 @@ in
 						ReturnedState = NewState
 					else %something went wrong
 						{Fct PlayerID#'done explosionhappened'}
-						{ERR 'ExplosionHappened did not return a record correctly formatted'}
+						{ERR 'ExplosionHappened did not return a record correctly formatted #1'}
 						ReturnedState = State
 					end
 				end
@@ -373,7 +352,6 @@ in
 			%-------- A mine exploded (is this player damaged?) -------------
 			[] sayMineExplode(ID Position ?Message) then
 				{Fct PlayerID#'say mine explode'}
-				{Show PlayerID#'say mine exploded'}
 				if PlayerLife =< 0 then
 					Message = sayDeath(PlayerID)
 					ReturnedState = State
@@ -386,7 +364,7 @@ in
 						ReturnedState = NewState
 					else %something went wrong
 						{Fct PlayerID#'done explosionhappened'}
-						{ERR 'ExplosionHappened did not return a record correctly formatted'}
+						{ERR 'ExplosionHappened did not return a record correctly formatted #2'}
 						ReturnedState = State
 					end
 				end
@@ -394,7 +372,6 @@ in
 			%------- A drone is asking if this player is on a certain row/column ---------
 			[] sayPassingDrone(Drone ?ID ?Answer) then
 				{Fct PlayerID#'say passing drone'}
-				{Show PlayerID#'say passing drone'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -412,10 +389,10 @@ in
 							else Answer = false
 							end
 						else %something went wrong
-							{ERR 'Drone has an invalid format'#Drone}
+							{ERR 'Drone has an invalid format #1'#Drone}
 						end
 					else %something went wrong
-						{ERR 'LocationState has an invalid format'#LocationState}
+						{ERR 'LocationState has an invalid format #5'#LocationState}
 					end
 					ReturnedState = State
 				end
@@ -423,7 +400,6 @@ in
 			%------ This player's drone came back with answers ------------
 			[] sayAnswerDrone(Drone ID Answer) then
 				{Fct PlayerID#'say answer drone'}
-				{Show PlayerID#'answer drone'}
 				if ID \= PlayerID andthen ID \= null then %Not @this
 					UpdatedTrackingInfo
 					Drone = {GetLastDroneFired WeaponsState}
@@ -431,33 +407,33 @@ in
 					if Answer then
 						case Drone
 						of drone(column X) then
-							{Dbg 'drone answer'#ID#Answer}
+							%{Show 'drone OK on column'#X}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
-							{Dbg 'new tracks'#UpdatedTrackingInfo}
+							%{Show 'drone'#UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row Y) then
-							{Dbg 'drone answer'#ID#Answer}
+							%{Show 'drone OK on row'#Y}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
-							{Dbg 'new tracks'#UpdatedTrackingInfo}
+							%{Show 'drone'#UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
-							{ERR 'Drone has an invalid format'#Drone}
+							{ERR 'Drone has an invalid format #2'#Drone}
 							ReturnedState = State
 						end
 					else %Answer == false
 						case Drone
 						of drone(column X) then
-							{Dbg 'drone answer'#ID#Answer}
+							%{Show 'drone NOT on column'#X}
 							UpdatedTrackingInfo = {DroneDidNotFind TrackingInfo ID column(X)}
-							{Dbg 'new tracks'#UpdatedTrackingInfo}
+							%{Show 'drone'#UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row Y) then
-							{Dbg 'drone answer'#ID#Answer}
+							%{Show 'drone NOT on column'#Y}
 							UpdatedTrackingInfo = {DroneDidNotFind TrackingInfo ID row(Y)}
-							{Dbg 'new tracks'#UpdatedTrackingInfo}
+							%{Show 'drone'#UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
-							{ERR 'Drone has an invalid format'#Drone}
+							{ERR 'Drone has an invalid format #3'#Drone}
 							ReturnedState = State
 						end
 					end
@@ -468,7 +444,6 @@ in
 			%----- A sonar is detecting => this player gives coordinates (one right, one wrong) ------
 			[] sayPassingSonar(?ID ?Answer) then
 				{Fct PlayerID#'say passing sonar'}
-				{Show PlayerID#'say passing sonar'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -482,13 +457,11 @@ in
 			%-------- This player's sonar probing answers ------------------
 			[] sayAnswerSonar(ID Answer) then
 				{Fct PlayerID#'say answer sonar'}
-				{Show PlayerID#'answer sonar'}
 				if ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo
 				in
-					{Dbg 'sonar answer'#ID#Answer}
 					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
-					{Dbg 'new tracks'#UpdatedTrackingInfo}
+					%{Show 'sonar'#UpdatedTrackingInfo}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
 					ReturnedState = State
@@ -497,7 +470,6 @@ in
 			%-------- Flash info : player @ID is dead -----------------
 			[] sayDeath(ID) then
 				{Fct PlayerID#'say dead'}
-				{Show PlayerID#'say dead'}
 				if ID \= null then
 					UpdatedTrackingInfo = {PlayerDead ID TrackingInfo}
 				in
@@ -667,12 +639,12 @@ in
 						null
 					end
 				else %something went wrong
-					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{ERR 'An element in TrackingInfo has an invalid format #1'#Track}
 					{Loop Remainder}
 				end
 			[] nil then null
 			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				{ERR 'TrackingInfo has an invalid format #1'#TrackingInfo}
 				null
 			end
 		end
@@ -707,7 +679,7 @@ in
 				NewDirection = east
 				NewPosition = pt(x:X y:Y-1)
 			else %something went wrong
-				{ERR 'Randomized out-of-bound'}
+				{ERR 'Randomized out-of-bound #1'}
 				NewPosition = null
 			end
 
@@ -735,7 +707,7 @@ in
 				end
 			end
 		else %something went wrong
-			{ERR 'Target or Position has an invalid format'#Target#Position}
+			{ERR 'Target or Position has an invalid format #1'#Target#Position}
 			null#null
 		end
 	end
@@ -767,7 +739,7 @@ in
 				NewDirection = east
 				NewPosition = pt(x:X y:Y-1)
 			else %something went wrong
-				{ERR 'Randomized out-of-bound'}
+				{ERR 'Randomized out-of-bound #2'}
 				NewPosition = null
 			end
 
@@ -795,7 +767,7 @@ in
 				end
 			end
 		else %something went wrong
-			{ERR 'Target or Position has an invalid format'#Target#Position}
+			{ERR 'Target or Position has an invalid format #2'#Target#Position}
 			null#null
 		end
 	end
@@ -842,7 +814,6 @@ in
 			NewWeaponAvailable
 			WeaponToLoad = {ChooseWhichToLoad WeaponsState TrackingInfo}
 		in
-			{Show 'which to load'#WeaponToLoad}
 			case WeaponToLoad
 			of mine then
 				NewWeaponsState = stateWeapons(minesLoading:MinesLoading+1 minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
@@ -881,30 +852,24 @@ in
 			%return
 			NewWeaponAvailable#NewWeaponsState
 		else %something went wrong
-			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			{ERR 'WeaponsState has an invalid format #1'#WeaponsState}
 			null#WeaponsState %because we have to return something
 		end
 	end
 
 	% @ChooseWhichToLoad : Chooses which type of weapon to load on basis of the tracking information
 	fun {ChooseWhichToLoad WeaponsState TrackingInfo}
-		{Show 'called ChooseWhichToLoad'}
 		if {NoTrackingInfo TrackingInfo} then
-			{Show 'no tracking info => sonar'}
 			sonar
 		else
 			Target = {GetTarget TrackingInfo}
 		in
-			{Show 'target'#Target}
 			if Target \= null then
-				{Show 'choosing missile or mine to load'}
 				{ChooseMissileOrMineToLoad WeaponsState TrackingInfo}
 			else
 				MostPreciseTarget% = {GetMostPreciseTarget TrackingInfo}
 			in
-				{Show 'call to GetMostPreciseTarget'}
 				MostPreciseTarget = {GetMostPreciseTarget TrackingInfo}
-				{Show 'most precise target'#MostPreciseTarget}
 				case MostPreciseTarget
 				of pos(x:XInfo y:YInfo) then
 					case XInfo
@@ -913,7 +878,7 @@ in
 						of supposed(_) then drone
 						[] unknown then sonar
 						else %something went wrong
-							{ERR 'YInfo has an unexpected format'#YInfo}
+							{ERR 'YInfo has an unexpected format #1'#YInfo}
 							sonar
 						end
 					[] supposed(_) then
@@ -922,7 +887,7 @@ in
 						[] supposed(_) then drone
 						[] unknown then drone
 						else %something went wrong
-							{ERR 'YInfo has an unexpected format'#YInfo}
+							{ERR 'YInfo has an unexpected format #2'#YInfo}
 							sonar
 						end
 					[] unknown then
@@ -931,14 +896,14 @@ in
 						[] supposed(_) then drone
 						[] unknown then sonar
 						else %something went wrong
-							{ERR 'YInfo has an unexpected format'#YInfo}
+							{ERR 'YInfo has an unexpected format #3'#YInfo}
 							sonar
 						end
 					end
 				[] null then
 					sonar
 				else %something went wrong
-					{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
+					{ERR 'GetMostPreciseTarget didnt return a value of the valid format #1'#MostPreciseTarget}
 					sonar
 				end
 			end
@@ -967,7 +932,7 @@ in
 					{AttackWeaponHeuristic}
 				end
 			else %something went wrong
-				{ERR 'WeaponsState has an invalid format'#WeaponsState}
+				{ERR 'WeaponsState has an invalid format #2'#WeaponsState}
 				missile %because we have to return something
 			end
 		else
@@ -989,12 +954,12 @@ in
 					else false
 					end
 				else %something went wrong
-					{ERR 'An element of TrackingInfo has an invalid format'#Track}
+					{ERR 'An element of TrackingInfo has an invalid format #1'#Track}
 					{Loop Remainder}
 				end
 			[] nil then true
 			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				{ERR 'TrackingInfo has an invalid format #2'#TrackingInfo}
 				true %because we have to return something
 			end
 		end
@@ -1049,7 +1014,7 @@ in
 						of supposed(_) then WeaponTypeToFire = drone
 						[] unknown then WeaponTypeToFire = sonar
 						else %something went wrong
-							{ERR 'YInfo has an unexpected format'#YInfo}
+							{ERR 'YInfo has an unexpected format #4'#YInfo}
 							WeaponTypeToFire = sonar
 						end
 					[] supposed(_) then WeaponTypeToFire = drone
@@ -1059,14 +1024,14 @@ in
 						[] supposed(_) then WeaponTypeToFire = drone
 						[] unknown then WeaponTypeToFire = sonar
 						else %something went wrong
-							{ERR 'YInfo has an unexpected format'#YInfo}
+							{ERR 'YInfo has an unexpected format #5'#YInfo}
 							WeaponTypeToFire = sonar
 						end
 					end
 				[] null then
 					WeaponTypeToFire = sonar
 				else %something went wrong
-					{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
+					{ERR 'GetMostPreciseTarget didnt return a value of the valid format #2'#MostPreciseTarget}
 					WeaponTypeToFire = sonar
 				end
 			end
@@ -1088,7 +1053,7 @@ in
 			else null
 			end
 		else %something went wrong
-			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			{ERR 'WeaponsState has an invalid format #3'#WeaponsState}
 			null %because we have to return something
 		end
 	end
@@ -1109,7 +1074,7 @@ in
 			else null
 			end
 		else %something went wrong
-			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			{ERR 'WeaponsState has an invalid format #4'#WeaponsState}
 			null %because we have to return something
 		end
 	end
@@ -1120,7 +1085,6 @@ in
 	%                         then @certain#@unknown, then @supposed#@unknown, then @unknown#@unknown
 	fun {GetMostPreciseTarget TrackingInfo}
 		fun {Loop TrackingInfo Acc Pass}
-			{Show 'loop getmostprecisetarget'#TrackingInfo#Acc#Pass}
 			case TrackingInfo
 			of Track|Remainder then
 				case Pass
@@ -1136,7 +1100,7 @@ in
 							{Loop Remainder {Append Acc Track|nil} Pass}
 						end
 					else %something went wrong
-						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{ERR 'An element in TrackingInfo has an invalid format #2'#Track}
 						{Loop Remainder {Append Acc Track|nil} Pass}
 					end
 				[] 2 then
@@ -1149,7 +1113,7 @@ in
 							{Loop Remainder {Append Acc Track|nil} Pass}
 						end
 					else %something went wrong
-						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{ERR 'An element in TrackingInfo has an invalid format #3'#Track}
 						{Loop Remainder {Append Acc Track|nil} Pass}
 					end
 				[] 3 then
@@ -1164,7 +1128,7 @@ in
 							{Loop Remainder {Append Acc Track|nil} Pass}
 						end
 					else %something went wrong
-						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{ERR 'An element in TrackingInfo has an invalid format #4'#Track}
 						{Loop Remainder {Append Acc Track|nil} Pass}
 					end
 				[] 4 then
@@ -1179,7 +1143,7 @@ in
 							{Loop Remainder {Append Acc Track|nil} Pass}
 						end
 					else %something went wrong
-						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{ERR 'An element in TrackingInfo has an invalid format #5'#Track}
 						{Loop Remainder {Append Acc Track|nil} Pass}
 					end
 				[] 5 then
@@ -1192,7 +1156,7 @@ in
 							{Loop Remainder {Append Acc Track|nil} Pass}
 						end
 					else %something went wrong
-						{ERR 'An element in TrackingInfo has an invalid format'#Track}
+						{ERR 'An element in TrackingInfo has an invalid format #6'#Track}
 						{Loop Remainder {Append Acc Track|nil} Pass}
 					end
 				else %something went wrong
@@ -1210,7 +1174,6 @@ in
 			end
 		end
 	in
-		{Show 'In GetMostPreciseTarget'}
 		{Loop TrackingInfo nil 1}
 	end
 
@@ -1246,7 +1209,7 @@ in
 			else null#WeaponsState
 			end
 		else %something went wrong
-			{ERR 'PlayerState has an invalid format'#PlayerState}
+			{ERR 'PlayerState has an invalid format #1'#PlayerState}
 			null %because we have to return something
 		end
 	end
@@ -1266,7 +1229,7 @@ in
 			else WeaponsState
 			end
 		else %something went wrong
-			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			{ERR 'WeaponsState has an invalid format #5'#WeaponsState}
 			WeaponsState %because we have to return something
 		end
 	end
@@ -1306,7 +1269,7 @@ in
 							null
 						end
 					else %something went wrong
-						{ERR 'WeaponsState has an invalid format'#WeaponsState}
+						{ERR 'WeaponsState has an invalid format #6'#WeaponsState}
 						mine(FiringPosition)
 					end
 				end
@@ -1353,7 +1316,7 @@ in
 							null
 						end
 					else %something went wrong
-						{ERR 'WeaponsState has an invalid format'#WeaponsState}
+						{ERR 'WeaponsState has an invalid format #7'#WeaponsState}
 						missile(FiringPosition)
 					end
 				end
@@ -1440,7 +1403,7 @@ in
 				of supposed(Y) then RowOrColumn = row(Y)
 				[] unknown then RowOrColumn = null
 				else %something went wrong
-					{ERR 'YInfo has an unexpected format'#YInfo}
+					{ERR 'YInfo has an unexpected format #6'#YInfo}
 					RowOrColumn = null
 				end
 			[] supposed(X) then
@@ -1449,7 +1412,7 @@ in
 				[] supposed(Y) then if {OS.rand} mod 2 == 0 then RowOrColumn = column(X) else RowOrColumn = row(Y) end
 				[] unknown then RowOrColumn = column(X)
 				else %something went wrong
-					{ERR 'YInfo has an unexpected format'#YInfo}
+					{ERR 'YInfo has an unexpected format #7'#YInfo}
 					RowOrColumn = null
 				end
 			[] unknown then
@@ -1462,7 +1425,7 @@ in
 		[] null then
 			RowOrColumn = null
 		else %something went wrong
-			{ERR 'GetMostPreciseTarget didnt return a value of the valid format'#MostPreciseTarget}
+			{ERR 'GetMostPreciseTarget didnt return a value of the valid format #3'#MostPreciseTarget}
 			RowOrColumn = null
 		end
 
@@ -1473,7 +1436,7 @@ in
 			[] 1 then %column
 				drone(column ({OS.rand} mod Input.nRow)+1)
 			else %something went wrong
-				{ERR 'Randomized out-of-bounds'}
+				{ERR 'Randomized out-of-bounds #1'}
 				drone(row ({OS.rand} mod Input.nRow)+1) %because we have to return something valid
 			end
 		else
@@ -1524,7 +1487,7 @@ in
 			[] nil then %we don't know any player close enough to this mine
 				false
 			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				{ERR 'TrackingInfo has an invalid format #3'#TrackingInfo}
 				false
 			end
 		end
@@ -1551,7 +1514,7 @@ in
 				Mine#stateWeapons(minesLoading:MinesLoading minesPlaced:RemainingMines missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
 			end
 		else %something went wrong
-			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			{ERR 'WeaponsState has an invalid format #8'#WeaponsState}
 			null#WeaponsState %because we have to return something
 		end
 	end
@@ -1613,7 +1576,7 @@ in
 				2#stateBasicAI(life:Life-2 locationState:stateLocation(pos:PlayerPosition dir:Direction visited:Visited) weaponsState:WeaponsState tracking:TrackingInfo)
 			end
 		else %something went wrong
-			{ERR 'PlayerState has an invalid format'#State}
+			{ERR 'PlayerState has an invalid format #2'#State}
 			%don't take damages (because we have to return something valid)
 			0#State
 		end
@@ -1634,11 +1597,11 @@ in
 			[] 1 then
 				pt(x:({OS.rand} mod Input.nRow)+1 y:PlayerPosition.y)
 			else %something went wrong
-				{ERR 'Randomized out-of-bounds'}
+				{ERR 'Randomized out-of-bounds #2'}
 				pt(x:({OS.rand} mod Input.nRow)+1 y:PlayerPosition.y) %because we have to return something valid
 			end
 		else %something went wrong
-			{ERR 'PlayerState has an invalid format'#State}
+			{ERR 'PlayerState has an invalid format #3'#State}
 			pt(x:0 y:0) %because we have to return somthing with a valid format
 		end
 	end
@@ -1651,7 +1614,6 @@ in
 	%                we transform the coordinate in @unknown
 	fun {PlayerMoved TrackingInfo ID Direction}
 		fun {Loop TrackingInfo ID Direction Acc}
-			{Show 'loop player moved'#TrackingInfo#ID#Direction#Acc}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track
@@ -1670,8 +1632,14 @@ in
 									%return
 									{Append {Append Acc trackingInfo(id:ID surface:false x:supposed(NewCoord) y:Y)|nil} Remainder}
 								else
-									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:unknown y:Y)|nil} Remainder}
+									case Y
+									of supposed(YCoord) then
+										%return
+										{Append {Append Acc trackingInfo(id:ID surface:false x:unknown y:certain(YCoord))|nil} Remainder}
+									else
+										%return
+										{Append {Append Acc trackingInfo(id:ID surface:false x:unknown y:Y)|nil} Remainder}
+									end
 								end
 							[] certain(Coord) then
 								NewCoord
@@ -1704,8 +1672,14 @@ in
 									%return
 									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:supposed(NewCoord))|nil} Remainder}
 								else
-									%return
-									{Append {Append Acc trackingInfo(id:ID surface:false x:X y:unknown)|nil} Remainder}
+									case X
+									of supposed(XCoord) then
+										%return
+										{Append {Append Acc trackingInfo(id:ID surface:false x:certain(XCoord) y:unknown)|nil} Remainder}
+									else
+										%return
+										{Append {Append Acc trackingInfo(id:ID surface:false x:X y:unknown)|nil} Remainder}
+									end
 								end
 							[] certain(Coord) then
 								NewCoord
@@ -1736,17 +1710,16 @@ in
 						{Loop Remainder ID Direction {Append Acc Track|nil}}
 					end
 				else %something went wrong
-					{ERR 'An element of TrackingInfo has an invalid format'#Track}
+					{ERR 'An element of TrackingInfo has an invalid format #2'#Track}
 					{Loop Remainder ID Direction {Append Acc Track|nil}}
 				end
 			[] nil then Acc
 			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'}
+				{ERR 'TrackingInfo has an invalid format #4'}
 				nil
 			end
 		end
 	in
-		{Show 'in PlayerMoved'}
 		{Loop TrackingInfo ID Direction nil}
 	end
 
@@ -1764,14 +1737,14 @@ in
 						{Loop Remainder ID {Append Acc Track|nil}}
 					end
 				else %something went wrong
-					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{ERR 'An element in TrackingInfo has an invalid format #7'#Track}
 					{Loop Remainder ID {Append Acc Track|nil}}
 				end
 			[] nil then %player was not found => add it
 				%return
 				{Append Acc trackingInfo(id:ID surface:true x:unknown y:unknown)|nil}
 			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				{ERR 'TrackingInfo has an invalid format #5'#TrackingInfo}
 				%return
 				TrackingInfo
 			end
@@ -1787,7 +1760,7 @@ in
 			%return
 			Drone
 		else %something went wrong
-			{ERR 'WeaponsState has an invalid format'#WeaponsState}
+			{ERR 'WeaponsState has an invalid format #9'#WeaponsState}
 			%return
 			null
 		end
@@ -1841,7 +1814,7 @@ in
 							end
 
 						else %something went wront
-							{ERR 'RowOrColumn given to drone has an invalid format'#RowOrColumn}
+							{ERR 'RowOrColumn given to drone has an invalid format #1'#RowOrColumn}
 							UpdatedX = X
 							UpdatedY = Y
 						end
@@ -1852,7 +1825,7 @@ in
 						{Loop Remainder ID RowOrColumn {Append Acc Track|nil}}
 					end
 				else %something went wrong
-					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{ERR 'An element in TrackingInfo has an invalid format #8'#Track}
 					{Loop Remainder ID RowOrColumn {Append Acc Track|nil}}
 				end
 			[] nil then %Player @ID wasn't found => add it
@@ -1864,7 +1837,7 @@ in
 					%return
 					{Append Acc trackingInfo(id:ID surface:unknown x:unknown y:certain(YDrone))|nil}
 				else %something went wrong
-					{ERR 'RowOrColumn given to drone has an invalid format'#RowOrColumn}
+					{ERR 'RowOrColumn given to drone has an invalid format #2'#RowOrColumn}
 					%return
 					Acc
 				end
@@ -1886,7 +1859,6 @@ in
 						UpdatedX UpdatedY
 						UpdatedTrack = trackingInfo(id:ID surface:Surface x:UpdatedX y:UpdatedY)
 					in
-						{Dbg 'Update track'#ID#RowOrColumn}
 						{Browse UpdatedX#UpdatedY#XInfo#YInfo}
 						case RowOrColumn
 						of column(XDrone) then
@@ -1952,7 +1924,7 @@ in
 								end
 							end
 						else %something went wrong
-							{ERR 'RowOrColumn given to drone has an invalid format'#RowOrColumn}
+							{ERR 'RowOrColumn given to drone has an invalid format #3'#RowOrColumn}
 							UpdatedX = XInfo
 							UpdatedY = YInfo
 						end
@@ -1963,7 +1935,7 @@ in
 						{Loop Remainder ID RowOrColumn {Append Acc Track|nil}}
 					end
 				else %something went wrong
-					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{ERR 'An element in TrackingInfo has an invalid format #9'#Track}
 					{Loop Remainder ID RowOrColumn {Append Acc Track|nil}}
 				end
 			[] nil then %player @ID wasn't found => ignore the information
@@ -1992,7 +1964,7 @@ in
 							of unknown then
 								UpdatedX = supposed(XSonar)
 							[] supposed(_) then
-								UpdatedX = supposed(XSonar) %TODO should we really update this?
+								UpdatedX = supposed(XSonar)
 							else %certain => don't update
 								UpdatedX = X
 							end
@@ -2001,7 +1973,7 @@ in
 							of unknown then
 								UpdatedY = supposed(YSonar)
 							[] supposed(_) then
-								UpdatedY = supposed(YSonar) %TODO should we really update this?
+								UpdatedY = supposed(YSonar)
 							else %certain => don't update
 								UpdatedY = Y
 							end
@@ -2010,7 +1982,7 @@ in
 							%return
 							{Append {Append Acc UpdatedTrack|nil} Remainder}
 						else %something went wrong
-							{ERR 'Answer given to sonar has an invalid format'#Answer}
+							{ERR 'Answer given to sonar has an invalid format #1'#Answer}
 							%return
 							{Append Acc TrackingInfo}
 						end
@@ -2018,7 +1990,7 @@ in
 						{Loop Remainder ID Answer {Append Acc Track|nil}}
 					end
 				else %something went wrong
-					{ERR 'An element of TrackingInfo has an invalid format'#Track}
+					{ERR 'An element of TrackingInfo has an invalid format #3'#Track}
 					{Loop Remainder ID Answer {Append Acc Track|nil}}
 				end
 			[] nil then %Player @ID was not found => add it
@@ -2027,12 +1999,12 @@ in
 					%return
 					{Append Acc trackingInfo(id:ID surface:unknown x:supposed(X) y:supposed(Y))|nil}
 				else %something went wrong
-					{ERR 'Answer given to sonar has an invalid format'#Answer}
+					{ERR 'Answer given to sonar has an invalid format #2'#Answer}
 					%return
 					Acc
 				end
 			else %something went wrong
-				{ERR 'TrackingInfo has an invalid format'#TrackingInfo}
+				{ERR 'TrackingInfo has an invalid format #6'#TrackingInfo}
 				nil
 			end
 		end
@@ -2055,7 +2027,7 @@ in
 						{Loop ID Remainder {Append Acc Track|nil}}
 					end
 				else %something went wrong
-					{ERR 'An element in TrackingInfo has an invalid format'#Track}
+					{ERR 'An element in TrackingInfo has an invalid format #10'#Track}
 					{Loop ID Remainder {Append Acc Track|nil}}
 				end
 			[] nil then Acc
