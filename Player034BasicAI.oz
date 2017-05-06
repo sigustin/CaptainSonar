@@ -66,6 +66,11 @@ define
 	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 lastDroneFired:null sonarsLoading:0)
 	DefaultTrackingState = nil
 	
+	%For the presentation
+	ShowTrackingInfo
+	ShowWeaponFired
+	ShowDroneAnswer
+	
 	%Debug procedures
 	proc {ERR Msg}
 		{System.show 'There was a problem in Player034BasicAI'#Msg}
@@ -246,6 +251,8 @@ in
 						of stateLocation(pos:PlayerPosition dir:_ visited:_) then
 							KindFire#NewWeaponsState = {FireWeapon FiredWeaponType State}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
+							
+							{ShowWeaponFired PlayerID KindFire}
 						else %something went wrong
 							{ERR 'LocationState has an invalid format #3'#LocationState}
 							ReturnedState = State
@@ -304,7 +311,8 @@ in
 					UpdatedTrackingInfo
 				in
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
-					{Show 'move'#UpdatedTrackingInfo}
+					{Show 'A player moved'}
+					{ShowTrackingInfo PlayerID UpdatedTrackingInfo}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
 					ReturnedState = State
@@ -407,14 +415,14 @@ in
 					if Answer then
 						case Drone
 						of drone(column X) then
-							%{Show 'drone OK on column'#X}
+							{ShowDroneAnswer ID column(X) positive}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
-							%{Show 'drone'#UpdatedTrackingInfo}
+							{ShowTrackingInfo PlayerID UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row Y) then
-							%{Show 'drone OK on row'#Y}
+							{ShowDroneAnswer ID row(Y) positive}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
-							%{Show 'drone'#UpdatedTrackingInfo}
+							{ShowTrackingInfo PlayerID UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
 							{ERR 'Drone has an invalid format #2'#Drone}
@@ -423,14 +431,14 @@ in
 					else %Answer == false
 						case Drone
 						of drone(column X) then
-							%{Show 'drone NOT on column'#X}
+							{ShowDroneAnswer ID column(X) negative}
 							UpdatedTrackingInfo = {DroneDidNotFind TrackingInfo ID column(X)}
-							%{Show 'drone'#UpdatedTrackingInfo}
+							{ShowTrackingInfo PlayerID UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row Y) then
-							%{Show 'drone NOT on column'#Y}
+							{ShowDroneAnswer ID row(Y) negative}
 							UpdatedTrackingInfo = {DroneDidNotFind TrackingInfo ID row(Y)}
-							%{Show 'drone'#UpdatedTrackingInfo}
+							{ShowTrackingInfo PlayerID UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
 							{ERR 'Drone has an invalid format #3'#Drone}
@@ -461,7 +469,8 @@ in
 					UpdatedTrackingInfo
 				in
 					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
-					%{Show 'sonar'#UpdatedTrackingInfo}
+					{Show 'Sonar answered :'}
+					{ShowTrackingInfo PlayerID UpdatedTrackingInfo}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
 					ReturnedState = State
@@ -539,6 +548,7 @@ in
 						DirectionTravelled
 						DistancePlayerTarget = {Abs (Position.x-Target.x)}+{Abs (Position.y-Target.y)}
 					in
+						{Show 'Target'#Target}
 						if DistancePlayerTarget > 2 then
 							NewPosition#DirectionTravelled = {MoveTowards Position VisitedSquares Target}
 						else
@@ -557,6 +567,7 @@ in
 						Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
 						DirectionTravelled %the direction towards which this player went
 					in
+						{Show 'no target'}
 						%Choose which axis to follow
 						if {OS.rand} mod 2 == 0 then % X-axis (vertically)
 							NewPosition = pt(x:Position.x+Movement y:Position.y)
@@ -656,6 +667,7 @@ in
 	%                move towards @Target (in most cases)
 	%                and the direction it makes
 	fun {MoveTowards Position VisitedSquares Target}
+		{Show 'Move towards'#Target}
 		case Position#Target
 		of pt(x:X y:Y)#pt(x:XTarget y:YTarget) then
 			NewPosition
@@ -716,6 +728,7 @@ in
 	%             move away from @Target (in most cases)
 	%             and the direction it makes
 	fun {MoveAway Position VisitedSquares Target}
+		{Show 'Move away'#Target}
 		case Position#Target
 		of pt(x:X y:Y)#pt(x:XTarget y:YTarget) then
 			NewPosition
@@ -2053,7 +2066,7 @@ in
 		end
 	end
 
-	% @CoordIsOnGrid :checks if @Coord along the axis @Axis is on the grid
+	% @CoordIsOnGrid : checks if @Coord along the axis @Axis is on the grid
 	fun {CoordIsOnGrid Coord Axis}
 		if Axis == x then
 			if Coord =< 0 orelse Coord > Input.nRow then false
@@ -2066,6 +2079,88 @@ in
 		else %something went wrong
 			{ERR 'Tried to check a coordinate in an invalid axis'#Axis}
 			false
+		end
+	end
+	
+	%=================== Procedures for the presentation ========================
+	% ShowTrackingInfo : shows the @TrackingInfo in a readable manner
+	proc {ShowTrackingInfo PlayerID TrackingInfo}
+		proc {Loop TrackingInfo}
+			case TrackingInfo
+			of Track|Remainder then
+				case Track
+				of trackingInfo(id:id(id:_ color:Color name:_) surface:_ x:X y:Y) then
+					{Show '   '#Color#info(x:X y:Y)}
+					{Loop Remainder}
+				else %something went wrong
+					{ERR 'An element of TrackingInfo has an invalid format #4'#Track}
+					{Loop Remainder}
+				end
+			[] nil then
+				skip
+			else %something went wrong
+				{ERR 'TrackingInfo has an invalid format #7'#TrackingInfo}
+			end
+		end
+	in
+		case PlayerID
+		of id(id:_ color:Color name:_) then
+			{Show ''}
+			{Show 'Tracking information of'#Color}
+			{Loop TrackingInfo}
+			{Show ''}
+		else %something went wrong
+			{ERR 'PlayerID has an invalid format'#PlayerID}
+		end
+	end
+	
+	% ShowWeaponFired : shows the @WeaponFired
+	proc {ShowWeaponFired PlayerID WeaponFired}
+		if WeaponFired \= null then
+			case PlayerID
+			of id(id:_ color:Color name:_) then
+				{Show ''}
+				case WeaponFired
+				of mine(_) then
+					{Show Color#'placed the mine'#WeaponFired}
+				else
+					{Show Color#'fired'#WeaponFired}
+				end
+				{Show ''}
+			else %something went wrong
+				{ERR 'PlayerID has an invalid format #2'#PlayerID}
+			end
+		end
+	end
+	
+	% ShowDroneAnswer : shows what was the answer of the drone recieved
+	proc {ShowDroneAnswer ID RowOrColumn Answer}
+		case ID
+		of id(id:_ color:Color name:_) then
+			case RowOrColumn
+			of column(X) then
+				case Answer
+				of positive then
+					{Show 'drone : '#Color#'on column'#X}
+				[] negative then
+					{Show 'drone : '#Color#'NOT on column'#X}
+				else %something went wrong
+					{ERR 'Answer has an invalid format #1'#Answer}
+				end
+			[] row(Y) then
+				case Answer
+				of positive then
+					{Show 'drone : '#Color#'on row'#Y}
+				[] negative then
+					{Show 'drone : '#Color#'NOT on row'#Y}
+				else %something went wrong
+					{ERR 'Answer has an invalid format #2'#Answer}
+				end
+			else %something went wrong
+				{ERR 'RowOrColumn has an invalid format'#RowOrColumn}
+			end
+		else %something went wrong
+			{ERR 'ID has an invalid format'#ID}
 		end
 	end
 end
