@@ -5,24 +5,13 @@
 functor
 import
 	OS %for random number generation
+	System %for displaying debug information
 	Browser %for displaying debug information
 
 	Input
 export
 	portPlayer:StartPlayer
 define
-	%Debug procedures
-	proc {ERR Msg}
-		{Browser.browse 'There was a problem in Player034BasicAI'#Msg}
-	end
-	proc {Fct Msg}
-		skip
-		%{Browser.browse 'fct'#Msg}
-	end
-	proc {WARN Msg}
-		{Browser.browse 'Warning:Player034BasicAI'#Msg}
-	end
-	
 	%Port object procedures
 	StartPlayer
 	TreatStream
@@ -76,6 +65,30 @@ define
 
 	DefaultWeaponsState = stateWeapons(minesLoading:0 minesPlaced:nil missilesLoading:0 dronesLoading:0 lastDroneFired:null sonarsLoading:0)
 	DefaultTrackingState = nil
+	
+	%Debug procedures
+	proc {ERR Msg}
+		{System.show 'There was a problem in Player034BasicAI'#Msg}
+	end
+	proc {Fct Msg}
+		skip
+		%{System.show 'fct'#Msg}
+	end
+	proc {WARN Msg}
+		{System.show 'Warning:Player034BasicAI'#Msg}
+	end
+	proc {Show Msg}
+		skip
+		%{System.show Msg}
+	end
+	proc {Dbg Msg}
+		skip
+		%{System.show Msg}
+	end
+	proc {Browse Msg}
+		skip
+		%{Browser.browse Msg}
+	end
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% This port object uses a state record of this type :
@@ -149,6 +162,7 @@ in
 			%------------ Initialize position ---------------
 			of initPosition(?ID ?Position) then
 				{Fct PlayerID#'initpos'}
+				%{Show 'initpos'}
 				if PlayerLife =< 0 then
 					ID = null
 				else
@@ -165,6 +179,7 @@ in
 			%------- Move player -----------------------
 			[] move(?ID ?Position ?Direction) then
 				{Fct PlayerID#'move received'}
+				{Show PlayerID#'move'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -187,6 +202,7 @@ in
 			%-------- Permission to dive ----------------------
 			[] dive then
 				{Fct PlayerID#'dive'}
+				{Show PlayerID#'dive'}
 				if PlayerLife =< 0 then
 					ReturnedState = State
 				else
@@ -207,6 +223,7 @@ in
 			%------- Increase the loading of an item ---------------
 			[] chargeItem(?ID ?KindItem) then
 				{Fct PlayerID#'charge item'}
+				{Show PlayerID#'charge item'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -215,7 +232,9 @@ in
 				in
 					ID = PlayerID
 					%Load one of the weapons's loading charge
+					{Show 'call to LoadWeapon'}
 					KindItem#NewWeaponsState = {LoadWeapon WeaponsState TrackingInfo}
+					{Show 'weapon loaded'#KindItem}
 
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:NewWeaponsState tracking:TrackingInfo)
 				end
@@ -223,6 +242,7 @@ in
 			%------- Fire a weapon -------------------
 			[] fireItem(?ID ?KindFire) then
 				{Fct PlayerID#'fire a weapon'}
+				{Show PlayerID#'fire weapon'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -246,10 +266,12 @@ in
 						ReturnedState = State
 					end
 				end
+				{Show 'end fire item'}
 				{Fct PlayerID#'done fire item'}
 			%------- Choose to explode a placed mine ---------------
 			[] fireMine(?ID ?Mine) then
 				{Fct PlayerID#'fire mine'}
+				{Show PlayerID#'fire mine'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -268,10 +290,12 @@ in
 						ReturnedState = State
 					end
 				end
+				{Show 'end fire mine'}
 				{Fct PlayerID#'done fire mine'}
 			%------- Is this player at the surface? ---------------
 			[] isSurface(?ID ?Answer) then
 				{Fct PlayerID#'surface'}
+				{Show PlayerID#'is surface'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -291,18 +315,24 @@ in
 			%------- Flash info : player @ID has moved in the direction @Direction ----------
 			[] sayMove(ID Direction) then
 				{Fct PlayerID#'say move'}
+				{Show PlayerID#'say move'}
 				if ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo
 				in
+					{Show 'call to PlayerMoved'}
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
+					{Show 'done call to PlayerMoved'#UpdatedTrackingInfo}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
+					{Show 'moved dead or me'}
 					ReturnedState = State
 				end
+				{Show PlayerID#'end say move'}
 				{Fct PlayerID#'done say move'}
 			%-------- Flash info : player @ID has made surface --------------
 			[] saySurface(ID) then
 				{Fct PlayerID#'say surface'}
+				{Show PlayerID#'say surface'}
 				if ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo = {PlayerMadeSurface TrackingInfo ID}
 				in
@@ -322,6 +352,7 @@ in
 			%-------- A missile exploded (is this player damaged?) ---------------
 			[] sayMissileExplode(ID Position ?Message) then
 				{Fct PlayerID#'say missile explode'}
+				{Show PlayerID#'say missile exploded'}
 				if PlayerLife =< 0 then
 					Message = sayDeath(PlayerID)
 					ReturnedState = State
@@ -342,6 +373,7 @@ in
 			%-------- A mine exploded (is this player damaged?) -------------
 			[] sayMineExplode(ID Position ?Message) then
 				{Fct PlayerID#'say mine explode'}
+				{Show PlayerID#'say mine exploded'}
 				if PlayerLife =< 0 then
 					Message = sayDeath(PlayerID)
 					ReturnedState = State
@@ -362,6 +394,7 @@ in
 			%------- A drone is asking if this player is on a certain row/column ---------
 			[] sayPassingDrone(Drone ?ID ?Answer) then
 				{Fct PlayerID#'say passing drone'}
+				{Show PlayerID#'say passing drone'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -390,6 +423,7 @@ in
 			%------ This player's drone came back with answers ------------
 			[] sayAnswerDrone(Drone ID Answer) then
 				{Fct PlayerID#'say answer drone'}
+				{Show PlayerID#'answer drone'}
 				if ID \= PlayerID andthen ID \= null then %Not @this
 					UpdatedTrackingInfo
 					Drone = {GetLastDroneFired WeaponsState}
@@ -397,10 +431,14 @@ in
 					if Answer then
 						case Drone
 						of drone(column X) then
+							{Dbg 'drone answer'#ID#Answer}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID column(X)}
+							{Dbg 'new tracks'#UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row Y) then
+							{Dbg 'drone answer'#ID#Answer}
 							UpdatedTrackingInfo = {DroneAnswered TrackingInfo ID row(Y)}
+							{Dbg 'new tracks'#UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
 							{ERR 'Drone has an invalid format'#Drone}
@@ -409,10 +447,14 @@ in
 					else %Answer == false
 						case Drone
 						of drone(column X) then
+							{Dbg 'drone answer'#ID#Answer}
 							UpdatedTrackingInfo = {DroneDidNotFind TrackingInfo ID column(X)}
+							{Dbg 'new tracks'#UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						[] drone(row Y) then
+							{Dbg 'drone answer'#ID#Answer}
 							UpdatedTrackingInfo = {DroneDidNotFind TrackingInfo ID row(Y)}
+							{Dbg 'new tracks'#UpdatedTrackingInfo}
 							ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 						else %something went wrong
 							{ERR 'Drone has an invalid format'#Drone}
@@ -426,6 +468,7 @@ in
 			%----- A sonar is detecting => this player gives coordinates (one right, one wrong) ------
 			[] sayPassingSonar(?ID ?Answer) then
 				{Fct PlayerID#'say passing sonar'}
+				{Show PlayerID#'say passing sonar'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -439,10 +482,13 @@ in
 			%-------- This player's sonar probing answers ------------------
 			[] sayAnswerSonar(ID Answer) then
 				{Fct PlayerID#'say answer sonar'}
+				{Show PlayerID#'answer sonar'}
 				if ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo
 				in
+					{Dbg 'sonar answer'#ID#Answer}
 					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
+					{Dbg 'new tracks'#UpdatedTrackingInfo}
 					ReturnedState = stateBasicAI(life:PlayerLife locationState:LocationState weaponsState:WeaponsState tracking:UpdatedTrackingInfo)
 				else
 					ReturnedState = State
@@ -451,6 +497,7 @@ in
 			%-------- Flash info : player @ID is dead -----------------
 			[] sayDeath(ID) then
 				{Fct PlayerID#'say dead'}
+				{Show PlayerID#'say dead'}
 				if ID \= null then
 					UpdatedTrackingInfo = {PlayerDead ID TrackingInfo}
 				in
@@ -795,6 +842,7 @@ in
 			NewWeaponAvailable
 			WeaponToLoad = {ChooseWhichToLoad WeaponsState TrackingInfo}
 		in
+			{Show 'which to load'#WeaponToLoad}
 			case WeaponToLoad
 			of mine then
 				NewWeaponsState = stateWeapons(minesLoading:MinesLoading+1 minesPlaced:MinesPlaced missilesLoading:MissilesLoading dronesLoading:DronesLoading lastDroneFired:Drone sonarsLoading:SonarsLoading)
@@ -840,16 +888,23 @@ in
 
 	% @ChooseWhichToLoad : Chooses which type of weapon to load on basis of the tracking information
 	fun {ChooseWhichToLoad WeaponsState TrackingInfo}
+		{Show 'called ChooseWhichToLoad'}
 		if {NoTrackingInfo TrackingInfo} then
+			{Show 'no tracking info => sonar'}
 			sonar
 		else
 			Target = {GetTarget TrackingInfo}
 		in
+			{Show 'target'#Target}
 			if Target \= null then
+				{Show 'choosing missile or mine to load'}
 				{ChooseMissileOrMineToLoad WeaponsState TrackingInfo}
 			else
-				MostPreciseTarget = {GetMostPreciseTarget TrackingInfo}
+				MostPreciseTarget% = {GetMostPreciseTarget TrackingInfo}
 			in
+				{Show 'call to GetMostPreciseTarget'}
+				MostPreciseTarget = {GetMostPreciseTarget TrackingInfo}
+				{Show 'most precise target'#MostPreciseTarget}
 				case MostPreciseTarget
 				of pos(x:XInfo y:YInfo) then
 					case XInfo
@@ -1065,6 +1120,7 @@ in
 	%                         then @certain#@unknown, then @supposed#@unknown, then @unknown#@unknown
 	fun {GetMostPreciseTarget TrackingInfo}
 		fun {Loop TrackingInfo Acc Pass}
+			{Show 'loop getmostprecisetarget'#TrackingInfo#Acc#Pass}
 			case TrackingInfo
 			of Track|Remainder then
 				case Pass
@@ -1154,6 +1210,7 @@ in
 			end
 		end
 	in
+		{Show 'In GetMostPreciseTarget'}
 		{Loop TrackingInfo nil 1}
 	end
 
@@ -1594,6 +1651,7 @@ in
 	%                we transform the coordinate in @unknown
 	fun {PlayerMoved TrackingInfo ID Direction}
 		fun {Loop TrackingInfo ID Direction Acc}
+			{Show 'loop player moved'#TrackingInfo#ID#Direction#Acc}
 			case TrackingInfo
 			of Track|Remainder then
 				case Track
@@ -1688,6 +1746,7 @@ in
 			end
 		end
 	in
+		{Show 'in PlayerMoved'}
 		{Loop TrackingInfo ID Direction nil}
 	end
 
@@ -1827,6 +1886,8 @@ in
 						UpdatedX UpdatedY
 						UpdatedTrack = trackingInfo(id:ID surface:Surface x:UpdatedX y:UpdatedY)
 					in
+						{Dbg 'Update track'#ID#RowOrColumn}
+						{Browse UpdatedX#UpdatedY#XInfo#YInfo}
 						case RowOrColumn
 						of column(XDrone) then
 							case XInfo
@@ -1876,6 +1937,9 @@ in
 									else
 										UpdatedX = XInfo
 									end
+								else
+									UpdatedX = XInfo
+									UpdatedY = YInfo
 								end
 							[] certain(Y) then
 								if Y == YDrone then %should never happen

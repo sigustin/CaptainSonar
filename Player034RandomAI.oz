@@ -5,21 +5,12 @@
 functor
 import
 	OS %for random number generation
-	Browser %for displaying debug information
+	System %for displaying debug information
 	
 	Input
 export
 	portPlayer:StartPlayer
 define
-	%Debug procedures
-	proc {ERR Msg}
-		{Browser.browse 'There was a problem in Player034RandomAI'#Msg}
-	end
-	proc {Fct Msg}
-		skip
-		%{Browser.browse 'fct'#Msg}
-	end
-	
 	%Port object procedures
 	StartPlayer
 	TreatStream
@@ -54,6 +45,19 @@ define
 	PositionIsValid
 	
 	DefaultWeaponsState = stateWeapons(nbMines:0 minesLoading:0 minesPlaced:nil nbMissiles:0 missilesLoading:0 nbDrones:0 dronesLoading:0 nbSonars:0 sonarsLoading:0)
+	
+	%Debug procedures
+	proc {ERR Msg}
+		{System.show 'There was a problem in Player034RandomAI'#Msg}
+	end
+	proc {Fct Msg}
+		skip
+		%{Browser.browse 'fct'#Msg}
+	end
+	proc {Show Msg}
+		skip
+		%{System.show Msg}
+	end
 in
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% This port object has an @ID containing the ID number, the color and the name of the object
@@ -84,7 +88,7 @@ in
 		Stream
 		Port
 		ID = id(id:Num color:Color name:'randomAI'#{OS.rand})
-	in		
+	in
 		{NewPort Stream Port}
 		thread
 			{TreatStream Stream ID stateRandomAI(life:Input.maxDamage locationState:stateLocation(pos:{InitPosition} dir:surface visited:nil) weaponsState:DefaultWeaponsState)}
@@ -133,6 +137,7 @@ in
 				end
 			%---------- Move player -------------------
 			[] move(?ID ?Position ?Direction) then
+				{Show PlayerID#'move'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -152,6 +157,7 @@ in
 				end
 			%---------- Provide the permission to dive -------------
 			[] dive then
+				{Show PlayerID#'dive'}
 				if PlayerLife =< 0 then
 					ReturnedState = State
 				else
@@ -170,6 +176,7 @@ in
 				end
 			%------- Increase the loading charge of an item ------------
 			[] chargeItem(?ID ?KindItem) then
+				{Show PlayerID#'charge item'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -188,6 +195,7 @@ in
 			%------- Fire a weapon -------------
 			% If a weapon is available, randomly choose to use one
 			[] fireItem(?ID ?KindFire) then
+				{Show PlayerID#'fire item'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -211,8 +219,10 @@ in
 						ReturnedState = State
 					end
 				end
+				{Show PlayerID#'end fire item'}
 			%-------- Choose to explode a placed mine -----------------
 			[] fireMine(?ID ?Mine) then
+				{Show PlayerID#'fire mine'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -230,8 +240,10 @@ in
 						ReturnedState = State
 					end
 				end
+				{Show PlayerID#'end fire mine'}
 			%-------- Is this player at the surface? ------------------
 			[] isSurface(?ID ?Answer) then
+				{Show PlayerID#'is surface'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -265,6 +277,7 @@ in
 				ReturnedState = State
 			%------------- A missile exploded (is this player damaged?) -----------------
 			[] sayMissileExplode(ID Position ?Message) then
+				{Show PlayerID#'say missile exploded'}
 				if PlayerLife =< 0 then
 					Message = sayDeath(PlayerID)
 					ReturnedState = State
@@ -280,6 +293,7 @@ in
 				end
 			%--------- A mine exploded (is this player damaged?) -----------------
 			[] sayMineExplode(ID Position ?Message) then
+				{Show PlayerID#'say mine exploded'}
 				if PlayerLife =< 0 then
 					Message = sayDeath(PlayerID)
 					ReturnedState = State
@@ -295,6 +309,7 @@ in
 				end
 			%------- A drone is asking if this player is on a certain row/column ---------
 			[] sayPassingDrone(Drone ?ID ?Answer) then
+				{Show PlayerID#'say passing drone'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State
@@ -325,6 +340,7 @@ in
 				ReturnedState = State
 			%---- A sonar is detecting => this player gives coordinates (one right, one wrong) --------
 			[] sayPassingSonar(?ID ?Answer) then
+				{Show PlayerID#'say passing sonar'}
 				if PlayerLife =< 0 then
 					ID = null
 					ReturnedState = State

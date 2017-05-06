@@ -4,6 +4,7 @@
 functor
 import
 	OS %for random number generation
+	System %for displaying debug information
 	Browser %for displaying debug information
 
 	GUI
@@ -45,10 +46,14 @@ define
 
 	%=========== DEBUG ====================
 	proc {DEBUG}
-		{Browser.browse 'debug'}
+		{System.show 'debug'}
+	end
+	proc {Show Msg}
+		{System.show Msg}
 	end
 	proc {Browse Msg}
-		{Browser.browse Msg}
+		skip
+		%{Browser.browse Msg}
 	end
 in
 
@@ -58,7 +63,7 @@ in
 	%                  and puts them in @PortsPlayer (with IDs in descending order)
 	proc {CreatePlayers}
 		fun {Loop Count PlayersList}
-			%{Browser.browse Count}
+			%{Show Count}
 			if Count > Input.nbPlayer then
 				PlayersList
 			else
@@ -360,7 +365,7 @@ in
 				NewPlayersAtSurfaceWaitingTurn = 0|NewPlayersAtSurfaceWaitingTurn2
 			end
 			%next player
-			%{Browser.browse 'fin'}
+			%{Show 'fin'}
 			{OneTurn PlayersPorts2 PlayersAtSurface2 PlayersAtSurfaceWaitingTurn2 NewPlayersAtSurface2 NewPlayersAtSurfaceWaitingTurn2}
 		[] nil|nil|nil then
 			NewPlayersAtSurface = nil
@@ -416,7 +421,7 @@ in
 	% @TurnByTurn : run the game in turn by turn mode
 	proc {TurnByTurn NTurn PlayersAtSurface PlayersAtSurfaceWaitingTurn}
 		%display information
-	   {Browser.browse 'Turn number : '#NTurn#'out of'#NTurnMax}
+	   {Show 'Turn number : '#NTurn#'out of'#NTurnMax}
 
 		%if NTurnMax is reached stop
 		if NTurn<NTurnMax then
@@ -424,9 +429,9 @@ in
 
 			NumAlive = {NumberAlive PlayersPorts 0}
 			if NumAlive==0 then
-				skip%{Browser.browse 'Players are all dead'}
+				skip%{Show 'Players are all dead'}
 			elseif NumAlive==1 then
-				skip%{Browser.browse 'One player left, we have a winner!!!'}
+				skip%{Show 'One player left, we have a winner!!!'}
 			else
 			   %Simulate One Turn
 			   {OneTurn PlayersPorts PlayersAtSurface.1 PlayersAtSurfaceWaitingTurn.1 NewPlayersAtSurface NewPlayersAtSurfaceWaitingTurn}
@@ -454,9 +459,9 @@ in
 			%our player is alive
 			{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-			%{Browse 'begin OnePlayerSimultaneous'}
 			%direction?
-			{Send P move(ID Position Direction)} %{Browse 'move'#ID#Position#Direction}
+			{Send P move(ID Position Direction)} %{Show 'move'#ID#Position#Direction}
+			
 			case ID of null then
 				skip
 			else
@@ -467,7 +472,7 @@ in
 				of surface then
 					{Send PortWindow surface(ID)}
 					{Delay Input.turnSurface}
-					{Send P dive} %{Browse 'dive'}
+					{Send P dive} %{Show 'dive'}
 					{OnePlayerSimultaneous P}
 				else KindItem KindFire Mine in
 
@@ -475,7 +480,7 @@ in
 
 					{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-					{Send P chargeItem(ID1 KindItem)} %{Browse 'chargeitem'}
+					{Send P chargeItem(ID1 KindItem)} %{Show 'chargeitem'}
 					case ID1 of null then
 						skip
 					else
@@ -483,16 +488,16 @@ in
 						of null then
 							skip
 						else
-							{BroadcastItemCharged ID KindItem} %{Browse 'itemcharged'}
+							{BroadcastItemCharged ID KindItem}
+							%{Show ID1#'charge'#KindItem}
 						end
 
 						{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-						{Send P fireItem(ID2 KindFire)} %{Browse 'fireitem'#ID2#KindFire}
+						{Send P fireItem(ID2 KindFire)} %{Show 'fireitem'#ID2#KindFire}
 						case ID2 of null then
 							skip
 						else
-
 							case KindFire
 							of null then
 								skip
@@ -502,22 +507,26 @@ in
 								of missile(Pos) then
 									Killed = {MissileExplode ID Pos}
 								[] sonar then
+									%{Show 'sonar by'#ID2}
 									Killed = {SonarActivated ID P}
 								[] drone(column _) then
+									%{Show 'drone column by'#ID2}
 									Killed = {DroneActivated ID P KindFire}
 								[] drone(row _) then
+									%{Show 'drone row by'#ID2}
 									Killed = {DroneActivated ID P KindFire}
 								[] mine(pt(x:X y:Y)) then
 									Killed = {MinePlaced ID}
 									{Send PortWindow putMine(ID pt(x:X y:Y))}
 								end
+								%{Show 'killed'#Killed}
 								{BroadcastKilled Killed}
 							end
 
 							if {IsAlive P} then
 								{Delay ({OS.rand} mod (Input.thinkMax-Input.thinkMin))+Input.thinkMin}
 
-								{Send P fireMine(ID3 Mine)} %{Browse 'firemine'#ID3#Mine}
+								{Send P fireMine(ID3 Mine)} {Browse 'firemine'#ID3#Mine}
 								case ID3 of null then
 									skip
 								else
@@ -525,14 +534,15 @@ in
 									of null then
 										skip
 									else Killed in
+										%{Show ID3#'explode mine'#Mine}
 										%broadcast and receive informations, change alive list
 										Killed = {MineExploded ID Mine}
 										{BroadcastKilled Killed}
 										{Send PortWindow removeMine(ID Mine)}
 									end
 								end
-
-								%{Browse 'end of oneplayersimultaneous'}
+								
+								%{Show 'end of oneplayersimultaneous'}
 								{OnePlayerSimultaneous P}
 							end
 						end
@@ -540,7 +550,8 @@ in
 				end
 			end
 		else
-			skip%{Browse 'dead'}
+			skip
+			%{Show 'dead'}
 		end
 	end
 
@@ -558,7 +569,7 @@ in
 	proc {Simultaneous}
 		GameFinished
 	in
-	   %{Browser.browse 'Simultaneous'}
+	   %{Show 'Simultaneous'}
 
 	   %Launch one thread by player that simulate the actions of each one
 	   for P in PlayersPorts do
@@ -571,7 +582,8 @@ in
 		{CheckEnd GameFinished}
 
 		if GameFinished then
-			skip%{Browser.browse 'The game is finished'}
+			%skip 
+			{Show 'The game is finished'}
 		end
 
 	end
@@ -584,8 +596,8 @@ in
 
 	%======= Create the port for every player and ask them to set up ===================
 	{CreatePlayers}
-	%{Browser.browse 'Input.nbPlayer'#Input.nbPlayer}
-	%{Browser.browse 'PlayersPorts'#PlayersPorts}
+	%{Show 'Input.nbPlayer'#Input.nbPlayer}
+	%{Show 'PlayersPorts'#PlayersPorts}
 
 	{SetUpAndShow PlayersPorts}
 
