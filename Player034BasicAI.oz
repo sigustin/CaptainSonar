@@ -567,7 +567,7 @@ in
 						Movement = {RandomStep} % can be either 1 or -1 (following an axis) => not 0 since we already visited here
 						DirectionTravelled %the direction towards which this player went
 					in
-						{Show 'no target'}
+						{Show 'No target'}
 						%Choose which axis to follow
 						if {OS.rand} mod 2 == 0 then % X-axis (vertically)
 							NewPosition = pt(x:Position.x+Movement y:Position.y)
@@ -1679,6 +1679,10 @@ in
 							in
 								if Direction == east then NewCoord = Coord+1
 								else NewCoord = Coord-1
+								%%%% TO USE WITH DAMIEN AND CHED'S AI %%%%%%%%
+								% if Direction == east then NewCoord = Coord-1
+								% else NewCoord = Coord+1
+								%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 								end
 
 								if {CoordIsOnGrid NewCoord y} then
