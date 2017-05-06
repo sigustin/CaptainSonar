@@ -646,14 +646,14 @@ in
 					case XInfo#YInfo
 					of certain(X)#certain(Y) then
 						pt(x:X y:Y)
-					else %not certain => move randomly
-						null
+					else
+						{Loop Remainder} %keep on seraching
 					end
 				else %something went wrong
 					{ERR 'An element in TrackingInfo has an invalid format #1'#Track}
 					{Loop Remainder}
 				end
-			[] nil then null
+			[] nil then null %no certain target => move randomly
 			else %something went wrong
 				{ERR 'TrackingInfo has an invalid format #1'#TrackingInfo}
 				null
