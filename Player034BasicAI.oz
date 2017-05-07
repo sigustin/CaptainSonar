@@ -307,7 +307,7 @@ in
 			%------- Flash info : player @ID has moved in the direction @Direction ----------
 			[] sayMove(ID Direction) then
 				{Fct PlayerID#'say move'}
-				if ID \= PlayerID andthen ID \= null then
+				if PlayerLife > 0 andthen ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo
 				in
 					UpdatedTrackingInfo = {PlayerMoved TrackingInfo ID Direction}
@@ -408,7 +408,7 @@ in
 			%------ This player's drone came back with answers ------------
 			[] sayAnswerDrone(Drone ID Answer) then
 				{Fct PlayerID#'say answer drone'}
-				if ID \= PlayerID andthen ID \= null then %Not @this
+				if PlayerLife > 0 andthen ID \= PlayerID andthen ID \= null then %Not @this
 					UpdatedTrackingInfo
 					Drone = {GetLastDroneFired WeaponsState}
 				in
@@ -465,7 +465,7 @@ in
 			%-------- This player's sonar probing answers ------------------
 			[] sayAnswerSonar(ID Answer) then
 				{Fct PlayerID#'say answer sonar'}
-				if ID \= PlayerID andthen ID \= null then
+				if PlayerLife > 0 andthen ID \= PlayerID andthen ID \= null then
 					UpdatedTrackingInfo
 				in
 					UpdatedTrackingInfo = {SonarAnswered TrackingInfo ID Answer}
@@ -1680,8 +1680,8 @@ in
 								if Direction == east then NewCoord = Coord+1
 								else NewCoord = Coord-1
 								%%%% TO USE WITH DAMIEN AND CHED'S AI %%%%%%%%
-								% if Direction == east then NewCoord = Coord-1
-								% else NewCoord = Coord+1
+								%if Direction == east then NewCoord = Coord-1
+								%else NewCoord = Coord+1
 								%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 								end
 
