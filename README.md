@@ -4,6 +4,8 @@ An implementation of the board game "Captain Sonar", in which **players control 
 The point of this project was to **implement the game's logic** and **add several features** to it (a very simple Graphical User Interface was provided by the teaching assistant) and **create AI agents** that would be able to play the game efficiently. The different parts of the system were supposed to interact using **message-passing concurrency**.
 Two modes of execution exist: a sequential turn-by-turn mode and a concurrent simultaneous mode.
 
+This project was made in 2017 for the course LINGI1131 &ndash; Computer Languages Concepts.
+
 *Languages used:*
 - *Oz*
 - *bash (to automate the compilation and execution)*
