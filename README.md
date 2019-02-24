@@ -17,7 +17,7 @@ This project is a two people project I made with Brieuc Pinon. He made the game 
 - Make a program whose parts are concurrently executing, and synchronize them using message-passing concurrency
 - Understand a game in a way that allows us to create efficient playing agents
 
-## Files worth checking
+## Files worth checking out
 - The project instructions: [Projet2017_V3.pdf](https://github.com/sigustin/CaptainSonar/blob/master/Projet2017_v3.pdf)
 - Our report explaining what we made: [Group34-Report.pdf](https://github.com/sigustin/CaptainSonar/blob/master/Group34-Report.pdf)
 - The main file, with most of the logic of the game: [Main.oz](https://github.com/sigustin/CaptainSonar/blob/master/Main.oz)
